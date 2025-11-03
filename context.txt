@@ -64,3 +64,4 @@ A noter que je suis un étudiant en M1 qui apprends le backend, j'ai deja des ba
 Objectif : Je veux COMPRENDRE, pas juste avoir un projet qui fonctionne.
 
 Je veux coder souvent aussi pour apprendre.
+dd
