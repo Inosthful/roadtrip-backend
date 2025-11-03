@@ -1,0 +1,66 @@
+# Contexte du projet : Planificateur de Roadtrip Collaboratif
+
+## Technologies
+- **Backend** : AdonisJS 6 (Node.js/TypeScript) avec PostgreSQL
+- **Frontend** : Vue.js 3 (géré par une autre équipe)
+- **Architecture** : API REST fullstack avec authentification JWT
+
+## Fonctionnalités principales attendues
+
+### Gestion des voyages
+- Création de roadtrips avec dates, titre, description et budget prévisionnel
+- Invitation de participants par email avec système de roles (creator/admin/member)
+- Statuts de voyage : planning, active, completed, cancelled
+
+### Gestion des étapes (stops)
+- Ajout d'étapes avec géolocalisation (latitude/longitude)
+- Types d'étapes : hébergement, restaurant, activité, point d'intérêt
+- Ordre personnalisable dans l'itinéraire
+- Dates d'arrivée/départ par étape
+- Upload de photos géolocalisées par étape
+- Intégration possible avec Google Places API
+
+### Optimisation d'itinéraire
+- Algorithme d'optimisation pour calculer le meilleur ordre des étapes
+- Prise en compte des étapes obligatoires (ordre fixe)
+- Calcul des distances et temps de trajet
+
+### Gestion financière collaborative
+- Enregistrement des dépenses par catégorie (transport, hébergement, nourriture, activités)
+- Système de split équitable ou personnalisé entre participants
+- Calcul automatique des remboursements (qui doit combien à qui)
+- Suivi budget prévisionnel vs réel
+
+### Collaboration temps réel
+- WebSockets pour synchronisation en temps réel des modifications
+- Notifications pour invitations, ajouts d'étapes, dépenses
+
+### Exports et rapports
+- Export de l'itinéraire en PDF
+- Récapitulatif financier du voyage
+- Journal de voyage avec photos et notes
+
+## Priorités pour les 60h
+1. Auth + CRUD complet (Users, Trips, Stops, Expenses)
+2. Relations entre entités et logique métier
+3. Algorithme d'optimisation d'itinéraire
+4. API de gestion financière avec calculs de splits
+5. WebSockets pour collaboration temps réel
+6. Documentation API (Swagger/OpenAPI)
+
+Le backend doit fournir une API REST propre et bien documentée pour être consommée par le frontend Vue.js.
+
+
+A noter que je suis un étudiant en M1 qui apprends le backend, j'ai deja des bases mais je n'ai fais le backend d'un projet en entier alors : / 
+1. Explique TOUJOURS ce que fait chaque bloc de code avant de le donner
+2. Pose-moi des questions pour vérifier ma compréhension
+3. Propose-moi des exercices pratiques après chaque concept
+4. Ne génère pas tout le code d'un coup, avance étape par étapeLis c et commencons a mettre en place mon projet de plannificateur de roadtrip collaboratif, a savoir que pour le moment j'ai initilisé le projet adonisJS, et que j'ai npm i, c'est tout. Lis bien et accompagne moi dans mon apprentissage, ce projet est réalisé en cours donc je suis la pour apprendre plutot qu'aller vite 
+5. Demande-moi de coder certaines parties moi-même avec des indices
+6. Explique les concepts théoriques (patterns, architecture) derrière le code
+7. Propose des alternatives et explique les trade-offs
+8. Fais des récaps réguliers de ce qu'on a appris
+
+Objectif : Je veux COMPRENDRE, pas juste avoir un projet qui fonctionne.
+
+Je veux coder souvent aussi pour apprendre.

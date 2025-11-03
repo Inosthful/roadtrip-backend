@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Service PostgreSQL
+  postgres:
+    image: postgres:16-alpine  # Image Docker officielle PostgreSQL 16 (légère)
+    container_name: roadtrip-postgres
+    restart: unless-stopped
+
+    # Variables d'environnement pour configurer PostgreSQL
+    environment:
+      POSTGRES_USER: root          # Correspond à DB_USER dans .env
+      POSTGRES_PASSWORD: root      # Correspond à DB_PASSWORD dans .env
+      POSTGRES_DB: roadtrip        # Nom de la base de données créée automatiquement
+      PGDATA: /var/lib/postgresql/data/pgdata  # Chemin des données dans le conteneur
+
+    # Mappage de ports : ton_pc:conteneur
+    ports:
+      - "5432:5432"  # PostgreSQL accessible sur localhost:5432
+
+    # Volume pour persister les données (même si le conteneur est supprimé)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Check de santé pour savoir si PostgreSQL est prêt
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d roadtrip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Service pgAdmin (interface web pour gérer PostgreSQL) - OPTIONNEL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: roadtrip-pgadmin
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+    ports:
+      - "5050:80"  # Interface accessible sur http://localhost:5050
+
+    depends_on:
+      - postgres
+
+# Déclaration du volume nommé
+volumes:
+  postgres_data:
+    driver: local
