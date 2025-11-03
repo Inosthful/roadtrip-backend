@@ -5,6 +5,248 @@
 - **Frontend** : Vue.js 3 (géré par une autre équipe)
 - **Architecture** : API REST fullstack avec authentification JWT
 
+---
+
+## 🎓 Approche pédagogique (TRÈS IMPORTANT)
+
+Je suis un étudiant en M1 qui apprend le backend. J'ai des bases mais c'est mon premier projet backend complet.
+
+**Méthodologie à respecter ABSOLUMENT :**
+1. ✅ **Learn by Doing** : Me faire coder les parties importantes avec des indices
+2. ✅ Explique TOUJOURS ce que fait chaque bloc de code AVANT de le donner
+3. ✅ Pose des questions pour vérifier ma compréhension
+4. ✅ Explique les concepts théoriques (patterns, architecture) derrière le code
+5. ✅ Propose des alternatives et explique les trade-offs
+6. ✅ Fais des récaps réguliers de ce qu'on a appris
+7. ✅ Ne génère PAS tout le code d'un coup, avance étape par étape
+8. ✅ Utilise des analogies et des exemples concrets
+
+**Objectif principal : Je veux COMPRENDRE, pas juste avoir un projet qui fonctionne.**
+
+---
+
+## ✅ Ce qui a été fait (Session 1 - 03/11/2025)
+
+### 1. Infrastructure ✅
+- ✅ Projet AdonisJS 6 initialisé
+- ✅ PostgreSQL configuré avec Docker (port 5432)
+- ✅ pgAdmin accessible (port 5050)
+- ✅ Variables d'environnement (.env) configurées
+- ✅ Migrations de base exécutées
+
+### 2. Authentification complète ✅
+**Fichiers créés et testés :**
+
+```
+app/
+  models/
+    user.ts                          ✅ Model avec JWT (DbAccessTokensProvider)
+  validators/auth/
+    register.ts                      ✅ Validation inscription (fullName, email, password)
+    login.ts                         ✅ Validation connexion (email, password)
+  controllers/
+    auth_controller.ts               ✅ 4 méthodes implémentées par l'étudiant
+      - register()                   ✅ (codé par moi)
+      - login()                      ✅ (codé par l'étudiant - Learn by Doing)
+      - logout()                     ✅ (codé par l'étudiant - Learn by Doing)
+      - me()                         ✅ (codé par l'étudiant - Learn by Doing)
+
+start/
+  routes/
+    auth.ts                          ✅ Routes d'auth avec lazy loading
+  routes.ts                          ✅ Import des routes
+  kernel.ts                          ✅ Middleware auth configuré
+```
+
+**API d'authentification testée ✅ :**
+- ✅ POST /auth/register (publique)
+- ✅ POST /auth/login (publique)
+- ✅ GET /auth/me (protégée 🔒 JWT)
+- ✅ POST /auth/logout (protégée 🔒 JWT)
+- ✅ Vérification de révocation de token
+
+### 3. Concepts appris par l'étudiant 🎓
+- ✅ Controllers et pattern MVC
+- ✅ Validators avec VineJS
+- ✅ Authentification JWT avec AdonisJS Auth
+- ✅ Différence entre propriétés **static** et **instance** (User.accessTokens vs user.fullName)
+- ✅ Routes protégées avec middleware auth
+- ✅ Lazy loading des controllers (const AuthController = () => import('#controllers/auth_controller'))
+- ✅ Organisation des routes par domaine (start/routes/auth.ts)
+- ✅ HttpContext (request, response, auth)
+- ✅ Différence entre auth.user() et auth.getUserOrFail()
+- ✅ Tokens JWT : .identifier vs .id
+- ✅ Fichiers env.ts et kernel.ts
+
+---
+
+## 📊 Schéma de base de données défini
+
+Le schéma complet a été expliqué en détail et validé avec l'étudiant.
+
+### Tables à créer (par ordre de dépendance)
+
+#### 1. ✅ users (Déjà créée)
+```
+users
+├─ id (PK)
+├─ full_name
+├─ email (UNIQUE)
+├─ password (hashé)
+├─ created_at
+└─ updated_at
+```
+
+#### 2. ✅ auth_access_tokens (Déjà créée)
+```
+auth_access_tokens
+├─ id (PK)
+├─ tokenable_id (FK → users.id)
+├─ hash
+├─ expires_at
+└─ ...
+```
+
+#### 3. ⏳ trips (À créer en priorité)
+```
+trips
+├─ id (PK)
+├─ title
+├─ description
+├─ start_date
+├─ end_date
+├─ budget (decimal)
+├─ status (enum: 'planning', 'active', 'completed', 'cancelled')
+├─ creator_id (FK → users.id)
+├─ created_at
+└─ updated_at
+```
+
+#### 4. ⏳ trip_participants (Table pivot Many-to-Many)
+```
+trip_participants
+├─ id (PK)
+├─ trip_id (FK → trips.id)
+├─ user_id (FK → users.id)
+├─ role (enum: 'creator', 'admin', 'member')
+├─ invitation_status (enum: 'pending', 'accepted', 'declined')
+├─ invited_at
+├─ joined_at
+├─ created_at
+└─ updated_at
+└─ UNIQUE(trip_id, user_id)
+```
+
+#### 5. ⏳ stops (Étapes du voyage)
+```
+stops
+├─ id (PK)
+├─ trip_id (FK → trips.id)
+├─ title
+├─ description
+├─ type (enum: 'accommodation', 'restaurant', 'activity', 'poi')
+├─ latitude (decimal 10,8)
+├─ longitude (decimal 11,8)
+├─ address
+├─ google_place_id (nullable)
+├─ order (integer - ordre dans l'itinéraire)
+├─ is_locked (boolean - ordre fixe pour l'algo)
+├─ arrival_date (nullable)
+├─ departure_date (nullable)
+├─ created_by (FK → users.id)
+├─ created_at
+└─ updated_at
+```
+
+#### 6. ⏳ photos (Photos des étapes)
+```
+photos
+├─ id (PK)
+├─ stop_id (FK → stops.id)
+├─ user_id (FK → users.id)
+├─ file_path
+├─ caption (nullable)
+├─ latitude (nullable)
+├─ longitude (nullable)
+├─ taken_at (nullable)
+├─ created_at
+└─ updated_at
+```
+
+#### 7. ⏳ expenses (Dépenses du voyage)
+```
+expenses
+├─ id (PK)
+├─ trip_id (FK → trips.id)
+├─ stop_id (FK → stops.id, nullable)
+├─ title
+├─ description (nullable)
+├─ amount (decimal)
+├─ category (enum: 'transport', 'accommodation', 'food', 'activity', 'other')
+├─ paid_by (FK → users.id)
+├─ expense_date
+├─ created_at
+└─ updated_at
+```
+
+#### 8. ⏳ expense_splits (Partage des dépenses)
+```
+expense_splits
+├─ id (PK)
+├─ expense_id (FK → expenses.id)
+├─ user_id (FK → users.id)
+├─ amount (decimal - part de cette personne)
+├─ is_paid (boolean - a remboursé ou pas)
+├─ created_at
+└─ updated_at
+```
+
+### Concepts clés expliqués à l'étudiant
+
+**1. trip_participants (Many-to-Many)**
+- Un user peut participer à plusieurs trips
+- Un trip peut avoir plusieurs participants
+- Table pivot nécessaire pour cette relation
+- Bonus : roles et invitation_status
+
+**2. is_locked dans stops**
+- Ordre FIXE pour l'algorithme d'optimisation
+- L'algo peut réorganiser les stops non-locked
+- Les stops locked gardent leur position
+
+**3. expense_splits (Système de balance)**
+- Calcul de "qui doit combien à qui"
+- Principe créditeur/débiteur
+- is_paid track les remboursements
+
+---
+
+## 🎯 PROCHAINE ÉTAPE (Session 2)
+
+### Objectif : Créer toutes les migrations pour les tables métier
+
+**Plan d'action :**
+1. Créer migration `trips`
+2. Créer migration `trip_participants` (avec foreign keys)
+3. Créer migration `stops`
+4. Créer migration `photos`
+5. Créer migration `expenses`
+6. Créer migration `expense_splits`
+7. Exécuter toutes les migrations
+8. Vérifier la structure dans pgAdmin
+
+**Approche pédagogique à suivre :**
+- Expliquer chaque type de colonne (decimal, enum, boolean, foreign key)
+- Expliquer les constraints (UNIQUE, CASCADE, nullable)
+- Faire coder certaines migrations à l'étudiant avec des indices (Learn by Doing)
+- Expliquer l'ordre de création (dépendances entre tables)
+
+**Après les migrations :**
+→ Créer les Models Lucid correspondants (Trip, Stop, Expense, etc.)
+→ Définir les relations entre models (@hasMany, @belongsTo, @manyToMany)
+
+---
+
 ## Fonctionnalités principales attendues
 
 ### Gestion des voyages
@@ -40,28 +282,29 @@
 - Récapitulatif financier du voyage
 - Journal de voyage avec photos et notes
 
-## Priorités pour les 60h
-1. Auth + CRUD complet (Users, Trips, Stops, Expenses)
-2. Relations entre entités et logique métier
-3. Algorithme d'optimisation d'itinéraire
-4. API de gestion financière avec calculs de splits
-5. WebSockets pour collaboration temps réel
-6. Documentation API (Swagger/OpenAPI)
+---
+
+## Priorités pour les 60h restantes
+
+1. ✅ Auth + migrations users ✅ (FAIT)
+2. ⏳ Migrations + Models (Trips, Stops, Expenses, Photos, Participants) (EN COURS)
+3. ⏳ Controllers + Routes CRUD pour chaque entité
+4. ⏳ Validators pour chaque entité
+5. ⏳ Relations entre entités et logique métier
+6. ⏳ Algorithme d'optimisation d'itinéraire
+7. ⏳ API de gestion financière avec calculs de splits
+8. ⏳ WebSockets pour collaboration temps réel (si le temps)
+9. ⏳ Documentation API Swagger/OpenAPI (si le temps)
 
 Le backend doit fournir une API REST propre et bien documentée pour être consommée par le frontend Vue.js.
 
+---
 
-A noter que je suis un étudiant en M1 qui apprends le backend, j'ai deja des bases mais je n'ai fais le backend d'un projet en entier alors : / 
-1. Explique TOUJOURS ce que fait chaque bloc de code avant de le donner
-2. Pose-moi des questions pour vérifier ma compréhension
-3. Propose-moi des exercices pratiques après chaque concept
-4. Ne génère pas tout le code d'un coup, avance étape par étapeLis c et commencons a mettre en place mon projet de plannificateur de roadtrip collaboratif, a savoir que pour le moment j'ai initilisé le projet adonisJS, et que j'ai npm i, c'est tout. Lis bien et accompagne moi dans mon apprentissage, ce projet est réalisé en cours donc je suis la pour apprendre plutot qu'aller vite 
-5. Demande-moi de coder certaines parties moi-même avec des indices
-6. Explique les concepts théoriques (patterns, architecture) derrière le code
-7. Propose des alternatives et explique les trade-offs
-8. Fais des récaps réguliers de ce qu'on a appris
+## Notes techniques importantes
 
-Objectif : Je veux COMPRENDRE, pas juste avoir un projet qui fonctionne.
-
-Je veux coder souvent aussi pour apprendre.
-dd
+- Serveur de dev : `node ace serve --watch` (port 3333)
+- PostgreSQL : localhost:5432 (user: root, password: root, db: roadtrip)
+- pgAdmin : localhost:5050
+- Structure des routes : organisée par domaine dans `start/routes/`
+- Lazy loading obligatoire pour les controllers (ESLint)
+- Middleware auth configuré dans `start/kernel.ts`
