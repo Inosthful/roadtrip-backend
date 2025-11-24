@@ -17,3 +17,6 @@ router.get('/', async () => {
 
 // Routes d'authentification
 import './routes/auth.js'
+
+// Routes de gestion des voyages
+import './routes/trips.js'
