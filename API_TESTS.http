@@ -9,15 +9,18 @@
 ###############################################
 
 ### 1. Créer un compte
+# @name test
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "fullName": "Test User",
-  "email": "test2@example.com",
+  "email": "test6@example.com",
   "password": "password123"
 }
 
+###
+@token = {{test.response.body.data.token}}
 ### 2. Se connecter (COPIE LE TOKEN !)
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
@@ -96,3 +99,56 @@ Content-Type: application/json
   "startDate": "2025-07-15",
   "endDate": "2025-07-01"
 }
+
+###############################################
+# 🗺️ ÉTAPES (STOPS)
+###############################################
+
+### 13. Lister toutes les étapes d'un voyage
+GET {{baseUrl}}/trips/{{tripId}}/stops
+Authorization: Bearer {{token}}
+
+### 14. Créer une étape (ordre automatique)
+POST {{baseUrl}}/trips/{{tripId}}/stops
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Tour Eiffel",
+  "description": "Visite guidée",
+  "type": "activity",
+  "latitude": 48.8584,
+  "longitude": 2.2945,
+  "address": "Champ de Mars, 5 Av. Anatole France, 75007 Paris"
+}
+
+### 15. Créer une deuxième étape (ordre automatique = 2)
+POST {{baseUrl}}/trips/{{tripId}}/stops
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Louvre",
+  "type": "activity",
+  "latitude": 48.8606,
+  "longitude": 2.3376,
+  "address": "Rue de Rivoli, 75001 Paris"
+}
+
+### 16. Voir une étape spécifique
+GET {{baseUrl}}/stops/1
+Authorization: Bearer {{token}}
+
+### 17. Modifier une étape
+PATCH {{baseUrl}}/stops/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Tour Eiffel - MODIFIÉE",
+  "isLocked": true
+}
+
+### 18. Supprimer une étape
+DELETE {{baseUrl}}/stops/1
+Authorization: Bearer {{token}}
