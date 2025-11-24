@@ -86,7 +86,7 @@ Le schéma complet a été expliqué en détail et validé avec l'étudiant.
 
 ### Tables à créer (par ordre de dépendance)
 
-#### 1. ✅ users (Déjà créée)
+#### 1. ✅ users (Créée)
 ```
 users
 ├─ id (PK)
@@ -97,7 +97,7 @@ users
 └─ updated_at
 ```
 
-#### 2. ✅ auth_access_tokens (Déjà créée)
+#### 2. ✅ auth_access_tokens (Créée)
 ```
 auth_access_tokens
 ├─ id (PK)
@@ -107,7 +107,7 @@ auth_access_tokens
 └─ ...
 ```
 
-#### 3. ⏳ trips (À créer en priorité)
+#### 3. ✅ trips (Créée)
 ```
 trips
 ├─ id (PK)
@@ -122,7 +122,7 @@ trips
 └─ updated_at
 ```
 
-#### 4. ⏳ trip_participants (Table pivot Many-to-Many)
+#### 4. ✅ trip_participants (Créée - Table pivot Many-to-Many)
 ```
 trip_participants
 ├─ id (PK)
@@ -137,7 +137,7 @@ trip_participants
 └─ UNIQUE(trip_id, user_id)
 ```
 
-#### 5. ⏳ stops (Étapes du voyage)
+#### 5. ✅ stops (Créée - Étapes du voyage)
 ```
 stops
 ├─ id (PK)
@@ -157,7 +157,7 @@ stops
 └─ updated_at
 ```
 
-#### 6. ⏳ photos (Photos des étapes)
+#### 6. ✅ photos (Créée - Photos des étapes)
 ```
 photos
 ├─ id (PK)
@@ -172,7 +172,7 @@ photos
 └─ updated_at
 ```
 
-#### 7. ⏳ expenses (Dépenses du voyage)
+#### 7. ✅ expenses (Créée - Dépenses du voyage)
 ```
 expenses
 ├─ id (PK)
@@ -188,7 +188,7 @@ expenses
 └─ updated_at
 ```
 
-#### 8. ⏳ expense_splits (Partage des dépenses)
+#### 8. ✅ expense_splits (Créée - Partage des dépenses)
 ```
 expense_splits
 ├─ id (PK)
@@ -309,104 +309,412 @@ start/routes/
 - ✅ Relations Lucid (.related(), .preload())
 - ✅ Gestion des permissions collaboratives
 
-### 4. Concepts appris en profondeur 🎓
+### 4. API CRUD Stops (Étapes) complète ✅
+
+**Fichiers créés :**
+```
+app/validators/stop/
+  create.ts                              ✅ Validation création
+  update.ts                              ✅ Validation modification
+
+app/controllers/
+  stops_controller.ts                    ✅ 5 méthodes CRUD + helper
+
+start/routes/
+  stops.ts                               ✅ Routes RESTful protégées
+```
+
+**API disponibles :**
+- ✅ GET    /trips/:tripId/stops   Liste les étapes d'un voyage
+- ✅ POST   /trips/:tripId/stops   Créer une étape (ordre auto)
+- ✅ GET    /stops/:id             Détails d'une étape
+- ✅ PATCH  /stops/:id             Modifier une étape
+- ✅ DELETE /stops/:id             Supprimer une étape
+
+**Logique métier implémentée :**
+- ✅ **Ordre automatique des étapes** (codé par l'étudiant)
+  - Si aucun ordre fourni → calcul auto (max + 1)
+  - Première étape d'un voyage → ordre = 1
+  - Requête pour trouver le max : `.orderBy('order', 'desc').first()`
+- ✅ Méthode helper privée `checkTripAccess()` (réutilisable)
+- ✅ Validation géolocalisation (latitude -90/90, longitude -180/180)
+- ✅ Types d'étapes : accommodation, restaurant, activity, poi
+- ✅ Support dates arrivée/départ optionnelles
+
+**Ce que l'étudiant a appris :**
+- ✅ Logique conditionnelle avec requêtes SQL asynchrones
+- ✅ Méthodes privées (helpers) dans les controllers
+- ✅ Routes imbriquées (nested routes) : `/trips/:tripId/stops`
+- ✅ Validation de types enum
+- ✅ Calcul d'ordre automatique avec `.orderBy().first()`
+- ✅ Gestion des valeurs NULL avec vérification stricte (`=== null`)
+
+### 5. Concepts appris en profondeur 🎓
 
 **Lucid ORM :**
 - ORM = Object-Relational Mapping (manipuler la BDD avec des objets TypeScript)
 - Eager Loading (.preload()) vs Lazy Loading
 - N+1 query problem et sa résolution
 - .merge() pour partial updates
+- Requêtes avec tri (.orderBy()) et limitation (.first())
 
 **Architecture API :**
 - Pattern RESTful (GET, POST, PATCH, DELETE)
 - Lazy loading des controllers (performance)
 - Organisation des routes par domaine
 - Middleware auth pour protection des routes
+- Routes imbriquées (nested resources)
+- Méthodes privées réutilisables (DRY principle)
 
 **Base de données :**
 - Foreign Keys et contraintes d'intégrité
 - CASCADE pour suppression automatique des données liées
 - Tables pivot enrichies (colonnes métier en plus des FK)
 - Contraintes UNIQUE composites
+- Calcul de valeurs maximales avec ORDER BY DESC
+
+**Gestion des erreurs :**
+- Vérification d'accès avec messages explicites
+- Codes HTTP appropriés (403 Forbidden)
+- `await` obligatoire pour requêtes asynchrones
 
 ---
 
-## 🎯 PROCHAINE ÉTAPE (Session 3)
+## ✅ Ce qui a été fait (Session 3 - 24/11/2025)
 
-### Objectif : CRUD complet pour les autres entités
+### 1. API CRUD Expenses (Dépenses) complète ✅
+
+**Fichiers créés :**
+```
+app/validators/expense/
+  create.ts                              ✅ Validation création
+  update.ts                              ✅ Validation modification
+
+app/controllers/
+  expenses_controller.ts                 ✅ 6 méthodes (5 CRUD + 1 balance)
+
+start/routes/
+  expenses.ts                            ✅ Routes RESTful protégées
+  routes.ts                              ✅ (mis à jour)
+```
+
+**API disponibles :**
+- ✅ GET    /trips/:tripId/expenses  Liste les dépenses d'un voyage
+- ✅ POST   /trips/:tripId/expenses  Créer une dépense
+- ✅ GET    /trips/:tripId/balance   **Calcul de la balance financière** 💰
+- ✅ GET    /expenses/:id            Détails d'une dépense
+- ✅ PATCH  /expenses/:id            Modifier une dépense
+- ✅ DELETE /expenses/:id            Supprimer une dépense
+
+### 2. Logique métier avancée implémentée ✅
+
+#### **A. Création automatique des expense_splits (méthode store)**
+
+Quand une dépense est créée, le système :
+1. Récupère tous les participants du voyage
+2. Calcule le montant par personne (`expense.amount / nbParticipants`)
+3. Crée automatiquement un `ExpenseSplit` pour chaque participant
+4. Marque `isPaid: true` pour le payeur, `false` pour les autres
+
+**Code clé :**
+```typescript
+await trip.load('participants')
+const nbParticipants = trip.participants.length
+const montantParPersonne = expense.amount / nbParticipants
+
+const splitsData = trip.participants.map((participant) => ({
+  expenseId: expense.id,
+  userId: participant.id,
+  amount: montantParPersonne,
+  isPaid: participant.id === user.id,  // Opérateur ternaire compact
+}))
+
+await ExpenseSplit.createMany(splitsData)  // Création en masse (1 seule requête)
+```
+
+#### **B. Algorithme de calcul de balance (méthode balance)**
+
+Endpoint `/trips/:tripId/balance` qui calcule **qui doit combien à qui** 💡
+
+**Algorithme complet :**
+1. Récupérer toutes les dépenses du voyage avec leurs splits
+2. Créer un objet `balances` pour accumuler les données (clé = userId)
+3. Pour chaque expense :
+   - Ajouter `expense.amount` au `paid` du payeur
+   - Parcourir les splits et ajouter `split.amount` au `owes` de chaque participant
+4. Calculer `balance = paid - owes` pour chaque user
+5. Transformer l'objet en tableau avec `Object.values()`
+
+**Structure de données retournée :**
+```json
+{
+  "tripId": 1,
+  "tripTitle": "Voyage en Italie",
+  "balances": [
+    { "userId": 5, "fullName": "Alice", "paid": 90, "owes": 50, "balance": 40 },
+    { "userId": 8, "fullName": "Bob", "paid": 60, "owes": 50, "balance": 10 },
+    { "userId": 12, "fullName": "Charlie", "paid": 0, "owes": 50, "balance": -50 }
+  ]
+}
+```
+
+**Interprétation :**
+- Alice : `balance = +40€` → On lui doit 40€ (créditeur)
+- Bob : `balance = +10€` → On lui doit 10€ (créditeur)
+- Charlie : `balance = -50€` → Il doit 50€ (débiteur)
+
+### 3. Concepts avancés appris 🎓
+
+#### **A. Lazy Loading vs Eager Loading**
+```typescript
+// Eager Loading (.preload sur une query - 1 requête optimisée)
+await Trip.query().preload('participants').findOrFail(id)
+
+// Lazy Loading (.load sur un model déjà chargé - 2 requêtes séparées)
+const trip = await Trip.findOrFail(id)
+await trip.load('participants')  // ⚠️ Asynchrone, nécessite await !
+```
+
+**Quand utiliser quoi ?**
+- `.preload()` : Quand on charge le model ET les relations en même temps
+- `.load()` : Quand on a déjà le model et qu'on veut charger les relations après
+
+#### **B. Pattern Accumulateur**
+```typescript
+balances[userId].paid += amount  // ✅ Accumule les valeurs
+balances[userId].paid = amount   // ❌ Écrase (perd les valeurs précédentes)
+```
+
+#### **C. Structures de données : Objet vs Tableau**
+**Pourquoi un objet pour `balances` ?**
+```typescript
+const balances: Record<number, {...}> = {}  // Objet avec clés numériques
+balances[5] = {...}  // Accès direct O(1)
+```
+
+**Alternative tableau (MOINS PERFORMANT) :**
+```typescript
+const balances = []
+const user = balances.find(b => b.userId === 5)  // Recherche O(n)
+```
+
+**Transformation finale :**
+```typescript
+Object.values(balances)  // Objet → Tableau pour l'API JSON
+```
+
+#### **D. TypeScript `Record<K, V>`**
+```typescript
+Record<number, { userId: number; fullName: string; ... }>
+// = Objet avec clés de type number et valeurs de type {...}
+```
+
+#### **E. Création en masse avec `.createMany()`**
+```typescript
+// ❌ LENT : N requêtes SQL
+for (const split of splitsData) {
+  await ExpenseSplit.create(split)
+}
+
+// ✅ RAPIDE : 1 seule requête SQL
+await ExpenseSplit.createMany(splitsData)
+```
+
+#### **F. Boucles en TypeScript**
+```typescript
+for (const expense of expenses)    // Itère sur les VALEURS d'un tableau
+for (const userId in balances)     // Itère sur les CLÉS d'un objet
+```
+
+#### **G. Lazy Initialization**
+```typescript
+if (!balances[userId]) {
+  balances[userId] = { paid: 0, owes: 0, ... }  // Créer seulement si nécessaire
+}
+balances[userId].paid += amount  // Puis accumuler
+```
+
+### 4. Complexité algorithmique 📊
+
+**Algorithme de balance :**
+```typescript
+for (const expense of expenses) {           // O(n) - n dépenses
+  for (const split of expense.splits) {     // O(m) - m splits par dépense
+    // Traitement O(1)
+  }
+}
+// Complexité totale : O(n × m)
+```
+
+**Optimisation spatiale :**
+- Objet `balances` : O(p) où p = nombre de participants (généralement petit)
+- Accès O(1) grâce aux clés d'objet
+
+---
+
+## 📊 État actuel du backend (utilisable par le frontend)
+
+### ✅ API complètes et testées
+
+**Authentification (4 routes) :**
+- POST /auth/register
+- POST /auth/login
+- GET /auth/me
+- POST /auth/logout
+
+**Trips / Voyages (5 routes) :**
+- GET /trips
+- POST /trips
+- GET /trips/:id
+- PATCH /trips/:id
+- DELETE /trips/:id
+
+**Stops / Étapes (5 routes) :**
+- GET /trips/:tripId/stops
+- POST /trips/:tripId/stops
+- GET /stops/:id
+- PATCH /stops/:id
+- DELETE /stops/:id
+
+**Expenses / Dépenses (6 routes) :**
+- GET /trips/:tripId/expenses
+- POST /trips/:tripId/expenses (avec création auto des splits)
+- GET /trips/:tripId/balance (calcul financier)
+- GET /expenses/:id
+- PATCH /expenses/:id
+- DELETE /expenses/:id
+
+**Total : 20 routes API fonctionnelles ✅**
+
+### ❌ Pas encore disponible
+
+- ⏳ Gestion des invitations et participants
+  - Inviter un user à un trip
+  - Accepter/refuser une invitation
+  - Changer le rôle d'un participant
+  - Quitter un trip
+  - Retirer un participant
+
+- ⏳ Upload de photos pour les stops
+  - Endpoint d'upload avec Multer/Drive
+  - Stockage des fichiers
+  - Gestion des métadonnées (géolocalisation, date)
+
+- ⏳ Algorithme d'optimisation d'itinéraire
+  - Calculer le meilleur ordre des stops
+  - Prendre en compte is_locked
+  - Intégration avec API de routing (Google Maps, OSRM)
+
+- ⏳ Simplification des remboursements
+  - Algorithme pour minimiser le nombre de transactions
+  - Ex: Au lieu de 3 remboursements, en calculer 2 optimaux
+
+### 💡 Le frontend peut commencer à travailler sur :
+
+- ✅ Système d'authentification complet (login, register, logout)
+- ✅ Gestion des voyages (création, modification, suppression)
+- ✅ Gestion des étapes avec ordre automatique
+- ✅ Gestion des dépenses collaboratives
+- ✅ **Affichage de la balance financière** (qui doit combien à qui)
+- ✅ Géolocalisation et carte pour les étapes
+
+---
+
+## 🎯 PROCHAINE ÉTAPE (Session 4)
+
+### Objectif prioritaire : Gestion des participants et invitations
 
 **Plan d'action :**
-1. ⏳ CRUD Stops (étapes du voyage)
-   - Validators (create/update)
-   - StopsController avec logique d'ordre
-   - Routes protégées
 
-2. ⏳ CRUD Expenses (dépenses)
-   - ExpensesController avec calcul de splits
-   - Logique de partage équitable
-   - Routes protégées
+1. ⏳ **API Participants (Invitations)**
+   - POST /trips/:tripId/participants → Inviter un user par email
+   - GET /trips/:tripId/participants → Lister les participants d'un trip
+   - PATCH /trips/:tripId/participants/:userId → Changer le rôle
+   - DELETE /trips/:tripId/participants/:userId → Retirer un participant
+   - POST /invitations/:id/accept → Accepter une invitation
+   - POST /invitations/:id/decline → Refuser une invitation
+   - GET /invitations → Mes invitations en attente
 
-3. ⏳ Gestion des participants (invitations)
-   - Inviter un user à un trip
-   - Accepter/refuser une invitation
-   - Changer le rôle d'un participant
-   - Quitter un trip
+2. ⏳ **Upload de photos**
+   - Configurer AdonisJS Drive
+   - POST /stops/:stopId/photos → Upload d'image
+   - GET /stops/:stopId/photos → Liste des photos
+   - DELETE /photos/:id → Supprimer une photo
 
-4. ⏳ API avancées
-   - Calcul des remboursements (qui doit combien à qui)
-   - Récap financier d'un trip
-   - Upload de photos pour les stops
+3. ⏳ **Algorithme d'optimisation (bonus si le temps)**
+   - POST /trips/:tripId/optimize → Optimiser l'itinéraire
+   - Prendre en compte is_locked
+   - Utiliser une API de routing
+
+4. ⏳ **Simplification des remboursements (bonus)**
+   - GET /trips/:tripId/settlements → Calcul des transactions minimales
+   - Algorithme de résolution de dette
 
 ---
 
 ## Fonctionnalités principales attendues
 
-### Gestion des voyages
+### ✅ Gestion des voyages (FAIT)
 - Création de roadtrips avec dates, titre, description et budget prévisionnel
-- Invitation de participants par email avec système de roles (creator/admin/member)
 - Statuts de voyage : planning, active, completed, cancelled
 
-### Gestion des étapes (stops)
+### ⏳ Gestion des participants (À FAIRE)
+- Invitation de participants par email avec système de roles (creator/admin/member)
+- Acceptation/refus d'invitations
+- Gestion des rôles et permissions
+
+### ✅ Gestion des étapes (FAIT)
 - Ajout d'étapes avec géolocalisation (latitude/longitude)
 - Types d'étapes : hébergement, restaurant, activité, point d'intérêt
 - Ordre personnalisable dans l'itinéraire
 - Dates d'arrivée/départ par étape
-- Upload de photos géolocalisées par étape
-- Intégration possible avec Google Places API
 
-### Optimisation d'itinéraire
+### ⏳ Upload de photos (À FAIRE)
+- Upload de photos géolocalisées par étape
+- Stockage et gestion des fichiers
+
+### ⏳ Optimisation d'itinéraire (À FAIRE)
 - Algorithme d'optimisation pour calculer le meilleur ordre des étapes
 - Prise en compte des étapes obligatoires (ordre fixe)
 - Calcul des distances et temps de trajet
+- Intégration possible avec Google Places API
 
-### Gestion financière collaborative
+### ✅ Gestion financière collaborative (FAIT)
 - Enregistrement des dépenses par catégorie (transport, hébergement, nourriture, activités)
-- Système de split équitable ou personnalisé entre participants
-- Calcul automatique des remboursements (qui doit combien à qui)
+- Système de split équitable automatique entre participants
+- Calcul automatique des balances (qui doit combien à qui)
 - Suivi budget prévisionnel vs réel
 
-### Collaboration temps réel
+### ⏳ Simplification des remboursements (Bonus)
+- Algorithme pour minimiser le nombre de transactions
+- Calcul des remboursements optimaux
+
+### ⏳ Collaboration temps réel (Bonus si le temps)
 - WebSockets pour synchronisation en temps réel des modifications
 - Notifications pour invitations, ajouts d'étapes, dépenses
 
-### Exports et rapports
+### ⏳ Exports et rapports (Bonus si le temps)
 - Export de l'itinéraire en PDF
 - Récapitulatif financier du voyage
 - Journal de voyage avec photos et notes
 
 ---
 
-## Priorités pour les 60h restantes
+## Priorités pour la suite
 
 1. ✅ Auth + migrations users ✅ (FAIT)
-2. ⏳ Migrations + Models (Trips, Stops, Expenses, Photos, Participants) (EN COURS)
-3. ⏳ Controllers + Routes CRUD pour chaque entité
-4. ⏳ Validators pour chaque entité
-5. ⏳ Relations entre entités et logique métier
-6. ⏳ Algorithme d'optimisation d'itinéraire
-7. ⏳ API de gestion financière avec calculs de splits
-8. ⏳ WebSockets pour collaboration temps réel (si le temps)
-9. ⏳ Documentation API Swagger/OpenAPI (si le temps)
+2. ✅ Migrations + Models (Trips, Stops, Expenses, Photos, Participants) ✅ (FAIT)
+3. ✅ Controllers + Routes CRUD (Trips, Stops, Expenses) ✅ (FAIT)
+4. ✅ Validators pour chaque entité ✅ (FAIT)
+5. ✅ Relations entre entités et logique métier ✅ (FAIT)
+6. ✅ Logique de partage des dépenses (expense_splits) ✅ (FAIT)
+7. ✅ Algorithme de calcul de balance financière ✅ (FAIT)
+8. ⏳ Gestion des invitations et participants (PRIORITAIRE)
+9. ⏳ Upload de photos (PRIORITAIRE)
+10. ⏳ Algorithme d'optimisation d'itinéraire (BONUS)
+11. ⏳ Simplification des remboursements (BONUS)
+12. ⏳ WebSockets pour collaboration temps réel (BONUS)
+13. ⏳ Documentation API Swagger/OpenAPI (BONUS)
 
 Le backend doit fournir une API REST propre et bien documentée pour être consommée par le frontend Vue.js.
 
@@ -420,3 +728,31 @@ Le backend doit fournir une API REST propre et bien documentée pour être conso
 - Structure des routes : organisée par domaine dans `start/routes/`
 - Lazy loading obligatoire pour les controllers (ESLint)
 - Middleware auth configuré dans `start/kernel.ts`
+
+---
+
+## Récapitulatif des apprentissages clés 🎓
+
+### Session 1 : Fondations
+- MVC Pattern
+- JWT Authentication
+- VineJS Validators
+- Routes protégées
+
+### Session 2 : Base de données et relations
+- Migrations avec dépendances
+- Lucid ORM et relations (belongsTo, hasMany, manyToMany)
+- Foreign Keys et CASCADE
+- Eager Loading vs Lazy Loading
+- Routes imbriquées
+
+### Session 3 : Logique métier avancée
+- Pattern Accumulateur
+- Structures de données (Record<K,V>, Object vs Array)
+- Création en masse (.createMany())
+- Algorithme de calcul financier
+- Double boucle imbriquée
+- Lazy Initialization
+- .load() vs .preload()
+- Object.values() pour transformation
+- Complexité algorithmique O(n × m)
