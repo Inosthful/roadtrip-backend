@@ -1,0 +1,98 @@
+### Variables globales
+@baseUrl = http://localhost:3333
+# ⚠️ Remplace cette valeur après le login !
+@token = oat_NA.aFFyVGlGWEtkNHlJaW5zZUxISWN6MTEtSTZGekN5Ym5ZTm1nRzRLMjM3MTU4MDM5MQ
+@tripId = 1
+
+###############################################
+# 🔐 AUTHENTIFICATION
+###############################################
+
+### 1. Créer un compte
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Test User",
+  "email": "test2@example.com",
+  "password": "password123"
+}
+
+### 2. Se connecter (COPIE LE TOKEN !)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@example.com",
+  "password": "password123"
+}
+
+### 3. Voir mon profil (protégé)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 4. Se déconnecter
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}
+
+###############################################
+# 🗺️ VOYAGES (TRIPS)
+###############################################
+
+### 5. Lister tous mes voyages
+GET {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+
+### 6. Créer un nouveau voyage
+POST {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Voyage en Italie",
+  "description": "Road trip à travers la Toscane",
+  "startDate": "2025-07-01",
+  "endDate": "2025-07-15",
+  "budget": 2500
+}
+
+### 7. Voir un voyage spécifique (avec relations)
+GET {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+
+### 8. Modifier un voyage
+PATCH {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Voyage en Italie - MODIFIÉ",
+  "status": "active",
+  "budget": 3000
+}
+
+### 9. Supprimer un voyage
+DELETE {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+
+###############################################
+# 🧪 TESTS D'ERREURS
+###############################################
+
+### 10. Tenter d'accéder sans token (401)
+GET {{baseUrl}}/trips
+
+### 11. Tenter d'accéder à un voyage inexistant (404)
+GET {{baseUrl}}/trips/999999
+Authorization: Bearer {{token}}
+
+### 12. Tenter de créer un voyage avec des données invalides (422)
+POST {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "AB",
+  "startDate": "2025-07-15",
+  "endDate": "2025-07-01"
+}
