@@ -148,7 +148,6 @@ stops
 ├─ latitude (decimal 10,8)
 ├─ longitude (decimal 11,8)
 ├─ address
-├─ google_place_id (nullable)
 ├─ order (integer - ordre dans l'itinéraire)
 ├─ is_locked (boolean - ordre fixe pour l'algo)
 ├─ arrival_date (nullable)
@@ -221,29 +220,142 @@ expense_splits
 
 ---
 
-## 🎯 PROCHAINE ÉTAPE (Session 2)
+## ✅ Ce qui a été fait (Session 2 - 24/11/2025)
 
-### Objectif : Créer toutes les migrations pour les tables métier
+### 1. Migrations complètes ✅
+
+Toutes les migrations ont été créées et exécutées avec succès :
+
+```
+database/migrations/
+  1763971748350_create_trips_table.ts                 ✅
+  1763971940364_create_trip_participants_table.ts     ✅
+  1763972530750_create_stops_table.ts                 ✅
+  1763972599825_create_photos_table.ts                ✅
+  1763972648671_create_expenses_table.ts              ✅
+  1763972693940_create_expense_splits_table.ts        ✅
+```
+
+**Ce que l'étudiant a appris :**
+- ✅ Ordre de création des migrations (dépendances entre tables)
+- ✅ Foreign Keys et stratégies onDelete (CASCADE vs RESTRICT vs SET NULL)
+- ✅ Tables pivot Many-to-Many (trip_participants)
+- ✅ Contraintes UNIQUE composites
+- ✅ Types de colonnes (decimal, enum, boolean, date, timestamp)
+
+### 2. Models Lucid complets ✅
+
+Tous les models ont été créés avec leurs relations bidirectionnelles :
+
+```
+app/models/
+  user.ts              ✅ (mis à jour avec nouvelles relations)
+  trip.ts              ✅
+  trip_participant.ts  ✅
+  stop.ts              ✅
+  photo.ts             ✅
+  expense.ts           ✅
+  expense_split.ts     ✅
+```
+
+**Relations configurées :**
+- `@belongsTo()` : Relation N → 1 (ex: un trip appartient à un créateur)
+- `@hasMany()` : Relation 1 → N (ex: un trip a plusieurs stops)
+- `@manyToMany()` : Relation N → N via table pivot (ex: users ↔ trips via trip_participants)
+
+**Ce que l'étudiant a appris :**
+- ✅ Lucid ORM et décorateurs (@column, @column.date, @column.dateTime)
+- ✅ Différence entre Model et Migration
+- ✅ Relations bidirectionnelles (naviguer dans les deux sens)
+- ✅ Eager Loading avec .preload()
+- ✅ Conversion Date JavaScript → DateTime Luxon
+
+### 3. API CRUD Trip complète ✅
+
+**Fichiers créés :**
+```
+app/validators/trip/
+  create.ts                              ✅ Validation création
+  update.ts                              ✅ Validation modification
+
+app/controllers/
+  trips_controller.ts                    ✅ 5 méthodes CRUD
+
+start/routes/
+  trips.ts                               ✅ Routes RESTful protégées
+  routes.ts                              ✅ (mis à jour)
+```
+
+**API disponibles :**
+- ✅ GET    /trips          Liste les trips de l'utilisateur (créés + participations)
+- ✅ POST   /trips          Créer un nouveau trip
+- ✅ GET    /trips/:id      Détails d'un trip avec relations
+- ✅ PATCH  /trips/:id      Modifier un trip (creator/admin only)
+- ✅ DELETE /trips/:id      Supprimer un trip (creator only)
+
+**Logique métier implémentée :**
+- ✅ Auto-ajout du créateur comme participant (codé par l'étudiant)
+- ✅ Gestion des permissions par rôle (creator/admin/member)
+- ✅ Vérification d'accès (créateur ou participant)
+- ✅ Suppression en cascade (CASCADE)
+
+**Ce que l'étudiant a appris :**
+- ✅ Pattern MVC complet (Model-View-Controller)
+- ✅ Validators VineJS avec règles métier (afterField pour endDate)
+- ✅ HttpContext (auth, request, response, params)
+- ✅ Méthodes Lucid (.query(), .preload(), .create(), .merge(), .save(), .delete())
+- ✅ Codes HTTP (200 OK, 201 Created, 204 No Content, 403 Forbidden, 404 Not Found)
+- ✅ Conversion Date → DateTime pour compatibility Lucid
+- ✅ Relations Lucid (.related(), .preload())
+- ✅ Gestion des permissions collaboratives
+
+### 4. Concepts appris en profondeur 🎓
+
+**Lucid ORM :**
+- ORM = Object-Relational Mapping (manipuler la BDD avec des objets TypeScript)
+- Eager Loading (.preload()) vs Lazy Loading
+- N+1 query problem et sa résolution
+- .merge() pour partial updates
+
+**Architecture API :**
+- Pattern RESTful (GET, POST, PATCH, DELETE)
+- Lazy loading des controllers (performance)
+- Organisation des routes par domaine
+- Middleware auth pour protection des routes
+
+**Base de données :**
+- Foreign Keys et contraintes d'intégrité
+- CASCADE pour suppression automatique des données liées
+- Tables pivot enrichies (colonnes métier en plus des FK)
+- Contraintes UNIQUE composites
+
+---
+
+## 🎯 PROCHAINE ÉTAPE (Session 3)
+
+### Objectif : CRUD complet pour les autres entités
 
 **Plan d'action :**
-1. Créer migration `trips`
-2. Créer migration `trip_participants` (avec foreign keys)
-3. Créer migration `stops`
-4. Créer migration `photos`
-5. Créer migration `expenses`
-6. Créer migration `expense_splits`
-7. Exécuter toutes les migrations
-8. Vérifier la structure dans pgAdmin
+1. ⏳ CRUD Stops (étapes du voyage)
+   - Validators (create/update)
+   - StopsController avec logique d'ordre
+   - Routes protégées
 
-**Approche pédagogique à suivre :**
-- Expliquer chaque type de colonne (decimal, enum, boolean, foreign key)
-- Expliquer les constraints (UNIQUE, CASCADE, nullable)
-- Faire coder certaines migrations à l'étudiant avec des indices (Learn by Doing)
-- Expliquer l'ordre de création (dépendances entre tables)
+2. ⏳ CRUD Expenses (dépenses)
+   - ExpensesController avec calcul de splits
+   - Logique de partage équitable
+   - Routes protégées
 
-**Après les migrations :**
-→ Créer les Models Lucid correspondants (Trip, Stop, Expense, etc.)
-→ Définir les relations entre models (@hasMany, @belongsTo, @manyToMany)
+3. ⏳ Gestion des participants (invitations)
+   - Inviter un user à un trip
+   - Accepter/refuser une invitation
+   - Changer le rôle d'un participant
+   - Quitter un trip
+
+4. ⏳ API avancées
+   - Calcul des remboursements (qui doit combien à qui)
+   - Récap financier d'un trip
+   - Upload de photos pour les stops
 
 ---
 
