@@ -83,7 +83,7 @@ Le serveur démarre sur **http://localhost:3333**
 - Password : `admin`
 
 Pour ajouter le serveur PostgreSQL dans pgAdmin :
-- Host : `postgres` (nom du service Docker)
+- Host : `localhost` (nom du service Docker)
 - Port : `5432`
 - Database : `roadtrip`
 - Username : `root`
