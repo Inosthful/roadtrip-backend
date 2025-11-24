@@ -20,3 +20,9 @@ import './routes/auth.js'
 
 // Routes de gestion des voyages
 import './routes/trips.js'
+
+// Routes de gestion des étapes
+import './routes/stops.js'
+
+// Routes de gestion des dépenses
+import './routes/expenses.js'
