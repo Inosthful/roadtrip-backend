@@ -25,7 +25,7 @@ export default class extends BaseSchema {
         .onDelete('CASCADE')
 
       // Rôle du participant dans le voyage
-      table.enum('role', ['creator', 'admin', 'member']).notNullable().defaultTo('member')
+      table.enum('role', ['creator', 'organizer', 'member']).notNullable().defaultTo('member')
 
       // Statut de l'invitation
       table
