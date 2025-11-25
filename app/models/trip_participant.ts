@@ -17,7 +17,7 @@ export default class TripParticipant extends BaseModel {
 
   // Rôle du participant
   @column()
-  declare role: 'creator' | 'admin' | 'member'
+  declare role: 'creator' | 'organizer' | 'member'
 
   // Statut de l'invitation
   @column()
