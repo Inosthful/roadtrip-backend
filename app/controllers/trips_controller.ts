@@ -90,15 +90,15 @@ export default class TripsController {
 
     const trip = await Trip.findOrFail(params.id)
 
-    // Vérifier que l'user est créateur ou admin
+    // Vérifier que l'user est créateur ou organizer
     const participation = await TripParticipant.query()
       .where('trip_id', trip.id)
       .where('user_id', user.id)
-      .whereIn('role', ['creator', 'admin'])
+      .whereIn('role', ['creator', 'organizer'])
       .first()
 
     if (!participation) {
-      return response.forbidden({ message: 'Only creator or admin can update trip' })
+      return response.forbidden({ message: 'Only creator or organizer can update trip' })
     }
 
     // Convertir les dates si présentes
