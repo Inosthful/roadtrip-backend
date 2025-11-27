@@ -1,8 +1,12 @@
 ### Variables globales
 @baseUrl = http://localhost:3333
 # ⚠️ Remplace cette valeur après le login !
-@token = oat_NA.aFFyVGlGWEtkNHlJaW5zZUxISWN6MTEtSTZGekN5Ym5ZTm1nRzRLMjM3MTU4MDM5MQ
-@tripId = 1
+@token = oat_Mjc.RGc3dW81MFhZZ0c3QV9ROGRLcDAzUmJqeTRlajBTZ3FiNEVmN3p5dzEwNzM1MTkwMjU
+# oat_MjM.MHBpUjAzMDM3bnRaR0x5cUUzMDFfei1XcjNHTEJEMDZQY0plbHEzeDIyMzcyNzIwNjM
+# 4
+# oat_MjQ.UWV2SHRUY0FidXctenh1UVhKUTVFNzBDM3hTR3YwQlV0Y0tXQzdnNTMwNTcwNzA5NTk
+# @token = {{test.response.body.data.token}}
+@tripId = 3
 
 ###############################################
 # 🔐 AUTHENTIFICATION
@@ -15,18 +19,17 @@ Content-Type: application/json
 
 {
   "fullName": "Test User",
-  "email": "test6@example.com",
+  "email": "testtest4@example.com",
   "password": "password123"
 }
 
 ###
-@token = {{test.response.body.data.token}}
 ### 2. Se connecter (COPIE LE TOKEN !)
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "test2@example.com",
+  "email": "testtest3@example.com",
   "password": "password123"
 }
 
@@ -151,4 +154,156 @@ Content-Type: application/json
 
 ### 18. Supprimer une étape
 DELETE {{baseUrl}}/stops/1
+Authorization: Bearer {{token}}
+
+###############################################
+# 👥 PARTICIPANTS & INVITATIONS
+###############################################
+# 📋 SCÉNARIO DE TEST :
+# 1. User A (créateur) crée un voyage
+# 2. User A invite User B par email
+# 3. User B voit ses invitations
+# 4. User B accepte l'invitation
+# 5. User A liste les participants (doit voir A + B)
+# 6. User A change le rôle de B (member → organizer)
+# 7. User B se retire du voyage
+
+# ⚠️ PRÉREQUIS : Créer 2 comptes avant de lancer ces tests !
+# User A : test2@example.com (déjà créé dans les tests ci-dessus)
+# User B : test6@example.com (déjà créé dans les tests ci-dessus)
+
+### 19. [User A] Créer un voyage (copier l'id du trip)
+POST {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "BLABLAVoyage Teest Invitations",
+  "description": "Pour tester les invitations collaboratives",
+  "startDate": "2025-08-01",
+  "endDate": "2025-08-10",
+  "budget": 1500
+}
+
+### 20. [User A] Inviter User B au voyage
+# ⚠️ Remplace {{tripId}} par l'ID du voyage créé au-dessus
+POST {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "testtest4@example.com"
+}
+
+### 21. [User A] Lister tous les participants du voyage
+# Devrait montrer : User A (creator, accepted) + User B (member, pending)
+GET {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+
+### 22. [User B] Se connecter pour voir ses invitations
+# ⚠️ IMPORTANT : Copie le token de User B et remplace @token ci-dessus !
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "testtest4@example.com",
+  "password": "password123"
+}
+
+### 23. [User B] Voir mes invitations en attente
+# Devrait montrer l'invitation au "Voyage Test Invitations"
+GET {{baseUrl}}/invitations
+Authorization: Bearer {{token}}
+
+### 24. [User B] Accepter l'invitation
+# ⚠️ Remplace :participantId par l'ID du TripParticipant (dans la réponse ci-dessus)
+POST {{baseUrl}}/invitations/6/accept
+Authorization: Bearer {{token}}
+
+### 25. [User B] Refuser une invitation (test - créer une 2ème invitation avant)
+# POST {{baseUrl}}/invitations/:participantId/decline
+# Authorization: Bearer {{token}}
+
+### 26. [User A] Se reconnecter et vérifier les participants
+# ⚠️ Remettre le token de User A !
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test2@example.com",
+  "password": "password123"
+}
+
+### 27. [User A] Lister les participants après acceptation
+# Devrait montrer : User A (creator, accepted) + User B (member, accepted)
+GET {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+
+### 28. [User A] Promouvoir User B en organizer
+# ⚠️ Remplace :userId par l'ID de User B (visible dans GET /trips/:id/participants)
+PATCH {{baseUrl}}/trips/{{tripId}}/participants/6
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "organizer"
+}
+
+### 29. [User A] Vérifier que User B est maintenant organizer
+GET {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+
+### 30. [User B] Se reconnecter et quitter le voyage
+# ⚠️ Remettre le token de User B
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test6@example.com",
+  "password": "password123"
+}
+
+### 31. [User B] Quitter le voyage (self-removal)
+# ⚠️ L'userId dans l'URL doit être celui de User B
+DELETE {{baseUrl}}/trips/{{tripId}}/participants/2
+Authorization: Bearer {{token}}
+
+### 32. [User A] Vérifier que User B a bien quitté le voyage
+# ⚠️ Remettre le token de User A
+GET {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+
+###############################################
+# 🧪 TESTS D'ERREURS - INVITATIONS
+###############################################
+
+### 33. [User B] Tenter d'inviter quelqu'un (devrait échouer - pas participant)
+POST {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "autre@example.com"
+}
+
+### 34. [User A] Tenter d'inviter un email inexistant (404)
+POST {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "nexistepas@example.com"
+}
+
+### 35. [User A] Tenter de réinviter User B (409 Conflict)
+POST {{baseUrl}}/trips/{{tripId}}/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "test6@example.com"
+}
+
+### 36. [User B] Tenter d'accepter une invitation d'un autre user (403)
+POST {{baseUrl}}/invitations/1/accept
 Authorization: Bearer {{token}}
