@@ -552,6 +552,175 @@ for (const expense of expenses) {           // O(n) - n dépenses
 
 ---
 
+## ✅ Ce qui a été fait (Session 5 - 25/11/2025)
+
+### 1. Refactoring stratégique : admin → organizer ✅
+
+**Changements effectués :**
+```
+database/migrations/1763971940364_create_trip_participants_table.ts
+  - enum('role', ['creator', 'admin', 'member'])
+  + enum('role', ['creator', 'organizer', 'member'])
+
+app/models/trip_participant.ts
+  - declare role: 'creator' | 'admin' | 'member'
+  + declare role: 'creator' | 'organizer' | 'member'
+
+app/controllers/trips_controller.ts
+  - .whereIn('role', ['creator', 'admin'])
+  + .whereIn('role', ['creator', 'organizer'])
+```
+
+**Raison :** Anticiper l'ajout futur de rôles au niveau application (user/admin système) pour éviter la confusion avec les rôles dans un trip.
+
+### 2. API Participants & Invitations complète ✅
+
+**Fichiers créés :**
+```
+app/validators/participant/
+  invite.ts                              ✅ Validation email
+  update_role.ts                         ✅ Validation rôle (organizer/member uniquement)
+
+app/controllers/
+  participants_controller.ts             ✅ 7 méthodes + 1 helper
+
+start/routes/
+  participants.ts                        ✅ 7 routes RESTful protégées
+  routes.ts                              ✅ (mis à jour)
+```
+
+**API disponibles (7 routes) :**
+- ✅ POST   /trips/:tripId/participants          Inviter un user (creator/organizer only)
+- ✅ GET    /trips/:tripId/participants          Lister les participants d'un trip
+- ✅ GET    /invitations                         Mes invitations en attente
+- ✅ POST   /invitations/:participantId/accept   Accepter une invitation
+- ✅ POST   /invitations/:participantId/decline  Refuser une invitation
+- ✅ PATCH  /trips/:tripId/participants/:userId  Changer le rôle (creator only)
+- ✅ DELETE /trips/:tripId/participants/:userId  Retirer/Quitter un trip
+
+**Logique métier implémentée :**
+- ✅ **Méthode helper `checkTripAccess()`** : Réutilisable, vérifie accès + retourne trip et participant
+- ✅ **Permissions granulaires** :
+  - Inviter : creator/organizer
+  - Changer rôle : creator uniquement
+  - Retirer quelqu'un : creator uniquement
+  - Quitter : organizer/member (creator ne peut pas quitter son trip)
+- ✅ **Machine à états pour invitations** :
+  - `pending` → `accepted` (avec `joinedAt`)
+  - `pending` → `declined`
+  - Impossible de ré-accepter/ré-refuser
+- ✅ **Vérifications de sécurité** :
+  - On ne peut accepter que ses propres invitations
+  - Impossible de changer le rôle du creator
+  - UNIQUE constraint empêche les doublons
+  - Vérification qu'un user existe avant d'inviter (404)
+  - 409 Conflict si déjà participant
+
+**Ce que l'étudiant a codé (Learn by Doing) :**
+- ✅ Méthodes `accept()` et `decline()` (machine à états)
+- ✅ Compréhension de la différence entre TripParticipant.id (pour accept/decline) et User.id (pour updateRole/remove)
+- ✅ Logique conditionnelle dans `remove()` (self-removal vs remove someone)
+
+### 3. Système d'envoi d'emails avec @adonisjs/mail ✅
+
+**Installation et configuration :**
+```bash
+node ace add @adonisjs/mail
+```
+
+**Fichiers de configuration :**
+```
+.env
+  + SMTP_HOST=smtp.gmail.com
+  + SMTP_PORT=587
+  + SMTP_USERNAME=inosthful@gmail.com
+  + SMTP_PASSWORD=moekqbpvakolajhu (mot de passe d'application Gmail)
+  + MAIL_FROM_ADDRESS=noreply@roadtrip.com
+  + MAIL_FROM_NAME="Roadtrip App"
+  + FRONTEND_URL=http://localhost:3000
+```
+
+**Template d'email créé :**
+```
+resources/views/emails/
+  invitation.edge                        ✅ Email HTML responsive avec design moderne
+```
+
+**Intégration dans le controller :**
+```typescript
+// Dans participants_controller.ts, méthode invite()
+await mail.send((message) => {
+  message
+    .to(userToInvite.email)
+    .subject(`Invitation au voyage : ${trip.title}`)
+    .htmlView('emails/invitation', {
+      invitedUser: userToInvite,
+      inviter: user,
+      trip: trip,
+      acceptUrl: acceptUrl,
+    })
+})
+```
+
+**Features du template email :**
+- ✅ Design responsive (mobile-friendly)
+- ✅ Dégradé violet moderne
+- ✅ Infos du trip (titre, description, dates, budget)
+- ✅ Bouton call-to-action "Accepter l'invitation"
+- ✅ Liste des avantages de rejoindre le trip
+- ✅ Footer professionnel
+- ✅ Variables dynamiques avec Edge ({{  }}, @if, @endif)
+- ✅ Formatage des dates (`.toFormat('dd/MM/yyyy')`)
+
+### 4. Tests et documentation ✅
+
+**Fichier de tests HTTP :**
+```
+API_TESTS.http
+  + Section complète "PARTICIPANTS & INVITATIONS" (tests 19-36)
+  + Scénario complet de test en 10 étapes
+  + Tests d'erreurs (403, 404, 409)
+  + Variables pour faciliter les tests (@token, @tripId, @userBId)
+```
+
+**Bugs corrigés pendant les tests :**
+- ✅ **Bug myInvitations()** : Ajout de `creatorId` dans le `.select()` pour permettre le `.preload('creator')`
+- ✅ **Bug validation** : Validator `updateRoleValidator` bloque correctement la promotion en 'creator'
+
+### 5. Concepts appris en profondeur 🎓
+
+**Pourquoi @adonisjs/mail plutôt qu'une autre solution ?**
+- Abstraction au-dessus de Nodemailer (plus simple)
+- Intégré avec AdonisJS (configuration centralisée)
+- Support des templates Edge
+- Multi-transports (SMTP, Mailgun, SES, etc.)
+- Mode "fake" pour les tests
+
+**Templates Edge :**
+- Séparation design/logique (Designer peut modifier l'HTML)
+- Échappement automatique (sécurité XSS)
+- Syntaxe claire : `{{ variable }}`, `@if`, `@each`
+
+**Mot de passe d'application Gmail :**
+- On ne peut PAS utiliser le mot de passe Gmail normal
+- Il faut activer la validation en 2 étapes
+- Puis créer un "mot de passe d'application" (16 caractères sans espaces)
+
+**Différence entre les IDs :**
+| ID | Table | Utilisation |
+|----|-------|-------------|
+| TripParticipant.id | trip_participants | Routes `/invitations/:participantId` |
+| User.id (userId) | users | Routes `/participants/:userId` |
+
+**Machine à états :**
+```
+pending → accepted (avec joinedAt)
+pending → declined
+```
+Pattern courant : commandes, tickets, workflows
+
+---
+
 ## 📊 État actuel du backend (utilisable par le frontend)
 
 ### ✅ API complètes et testées
@@ -584,16 +753,18 @@ for (const expense of expenses) {           // O(n) - n dépenses
 - PATCH /expenses/:id
 - DELETE /expenses/:id
 
-**Total : 20 routes API fonctionnelles ✅**
+**Participants / Invitations (7 routes) :**
+- POST /trips/:tripId/participants
+- GET /trips/:tripId/participants
+- GET /invitations
+- POST /invitations/:participantId/accept
+- POST /invitations/:participantId/decline
+- PATCH /trips/:tripId/participants/:userId
+- DELETE /trips/:tripId/participants/:userId
 
-### ❌ Pas encore disponible
+**Total : 27 routes API fonctionnelles ✅**
 
-- ⏳ Gestion des invitations et participants
-  - Inviter un user à un trip
-  - Accepter/refuser une invitation
-  - Changer le rôle d'un participant
-  - Quitter un trip
-  - Retirer un participant
+### ❌ Pas encore disponible (priorités pour la suite)
 
 - ⏳ Upload de photos pour les stops
   - Endpoint d'upload avec Multer/Drive
@@ -756,3 +927,14 @@ Le backend doit fournir une API REST propre et bien documentée pour être conso
 - .load() vs .preload()
 - Object.values() pour transformation
 - Complexité algorithmique O(n × m)
+
+### Session 5 : Système d'invitations et emails (25/11/2025)
+- Refactoring enum : admin → organizer (anticipation des rôles app)
+- API complète de gestion des participants (7 endpoints)
+- Validators pour invitations et changement de rôle
+- Machine à états (pending → accepted/declined)
+- Permissions complexes (creator/organizer/member)
+- Installation et configuration @adonisjs/mail
+- Templates Edge pour emails HTML responsives
+- Configuration SMTP (Gmail avec mot de passe d'application)
+- Intégration envoi d'email dans le workflow d'invitation
