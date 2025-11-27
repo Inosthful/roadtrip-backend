@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Invitation au voyage
+    </title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        text-align: center;
+        color: white;
+      }
+      
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      
+      .content {
+        padding: 30px;
+        color: #333;
+        line-height: 1.6;
+      }
+      
+      .trip-info {
+        background-color: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+      
+      .trip-info h2 {
+        margin-top: 0;
+        color: #667eea;
+        font-size: 22px;
+      }
+      
+      .trip-info p {
+        margin: 8px 0;
+      }
+      
+      .trip-info strong {
+        color: #555;
+      }
+      
+      .button-container {
+        text-align: center;
+        margin: 30px 0;
+      }
+      
+      .button {
+        display: inline-block;
+        padding: 15px 40px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: bold;
+        font-size: 16px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+      }
+      
+      .button:hover {
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        transform: translateY(-2px);
+      }
+      
+      .footer {
+        background-color: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+        border-top: 1px solid #e0e0e0;
+      }
+      
+      .footer p {
+        margin: 5px 0;
+      }
+      
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>
+          ✈️ Invitation au voyage
+        </h1>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <p>
+          Bonjour <strong>{{ invitedUser.fullName }}</strong>!
+        </p>
+
+        <p>
+          <strong>{{ inviter.fullName }}</strong>vous invite à rejoindre un voyage collaboratif sur <strong>Roadtrip App</strong>! 🎉
+        </p>
+
+        <!-- Trip Information -->
+        <div class="trip-info">
+          <h2>
+            {{ trip.title }}
+          </h2>
+
+          @if(trip.description)
+            <p>
+              {{ trip.description }}
+            </p>
+          @endif
+          
+          <p>
+            <strong>📅 Dates :</strong>Du {{ trip.startDate.toFormat('dd/MM/yyyy') }} au {{ trip.endDate.toFormat('dd/MM/yyyy') }}
+          </p>
+
+          @if(trip.budget)
+            <p>
+              <strong>💰 Budget prévisionnel :</strong>{{ trip.budget }}€
+            </p>
+          @endif
+        </div>
+
+        <p>
+          En acceptant cette invitation, vous pourrez :
+        </p>
+        <ul>
+          <li>
+            Consulter l'itinéraire du voyage
+          </li>
+          <li>
+            Ajouter des étapes et des activités
+          </li>
+          <li>
+            Partager les dépenses avec le groupe
+          </li>
+          <li>
+            Collaborer avec les autres participants
+          </li>
+        </ul>
+
+        <!-- Call to Action -->
+        <div class="button-container">
+          <a href="{{ acceptUrl }}" class="button">
+            Accepter l'invitation
+        </a>
+        </div>
+
+        <p style="text-align: center; color: #999; font-size: 14px;">
+          Vous pouvez également gérer vos invitations directement depuis l'application.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>
+          Cet email a été envoyé par <strong>Roadtrip App</strong>
+        </p>
+        <p>
+          Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet email.
+        </p>
+        <p>
+          &copy; 2025 Roadtrip App - Tous droits réservés
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
