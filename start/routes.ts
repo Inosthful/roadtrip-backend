@@ -26,3 +26,6 @@ import './routes/stops.js'
 
 // Routes de gestion des dépenses
 import './routes/expenses.js'
+
+// Routes de gestion des participants et invitations
+import './routes/participants.js'
