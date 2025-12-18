@@ -1,4 +1,5 @@
 import User from '#models/user'
+import OtpToken from '#models/otp_token'
 import { loginValidator } from '#validators/auth/login'
 import { registerValidator } from '#validators/auth/register'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -16,17 +17,22 @@ export default class AuthController {
   async register({ request, response }: HttpContext) {
     const payload = await request.validateUsing(registerValidator)
 
-    const verificationToken = crypto.randomBytes(32).toString('hex')
-
     const user = await User.create({
       ...payload,
       isVerified: false,
-      verificationToken: verificationToken,
     })
 
-    // Construire l'URL de vérification
+    const token = crypto.randomBytes(32).toString('hex')
+
+    await OtpToken.create({
+      userId: user.id,
+      tokenHash: token,
+      purpose: 'verify_email',
+      expiresAt: DateTime.now().plus({ hours: 24 }), // Token valide 24h
+    })
+
     const frontendUrl = 'http://localhost:5173'
-    const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`
+    const verifyUrl = `${frontendUrl}/verify-email?token=${token}`
 
     await mail.send(new VerifyEmailNotification(user, verifyUrl))
 
@@ -42,15 +48,24 @@ export default class AuthController {
       return response.badRequest({ message: 'Token manquant' })
     }
 
-    const user = await User.findBy('verificationToken', token)
+    const otpToken = await OtpToken.query()
+      .where('token_hash', token)
+      .where('purpose', 'verify_email')
+      .whereNull('used_at')
+      .where('expires_at', '>', DateTime.now().toSQL())
+      .preload('user')
+      .first()
 
-    if (!user) {
-      return response.badRequest({ message: 'Token invalide' })
+    if (!otpToken) {
+      return response.badRequest({ message: 'Lien invalide ou expiré.' })
     }
 
+    const user = otpToken.user
     user.isVerified = true
-    user.verificationToken = null
     await user.save()
+
+    otpToken.usedAt = DateTime.now()
+    await otpToken.save()
 
     return response.ok({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' })
   }
@@ -66,20 +81,21 @@ export default class AuthController {
 
     const user = await User.findBy('email', email)
 
-    // Pour des raisons de sécurité, on ne dit pas si l'email existe ou non, sauf si on veut aider l'utilisateur explicitement.
-    // L'utilisateur a demandé d'afficher un message si l'email n'existe pas, donc on le fait.
     if (!user) {
       return response.notFound({ message: "Aucun compte n'est associé à cet email." })
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex')
-    user.resetPasswordToken = resetToken
-    // Expire dans 1 heure
-    user.resetPasswordExpiresAt = DateTime.now().plus({ hours: 1 })
-    await user.save()
+    const token = crypto.randomBytes(32).toString('hex')
+
+    await OtpToken.create({
+      userId: user.id,
+      tokenHash: token,
+      purpose: 'reset_password',
+      expiresAt: DateTime.now().plus({ hours: 1 }),
+    })
 
     const frontendUrl = 'http://localhost:5173'
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`
 
     await mail.send(new ResetPasswordNotification(user, resetUrl))
 
@@ -91,46 +107,31 @@ export default class AuthController {
       vine.compile(
         vine.object({
           token: vine.string(),
-          password: vine.string().minLength(8), // Ajouter ici les mêmes règles de validation que le register si besoin
+          password: vine.string().minLength(8),
         })
       )
     )
 
-    const user = await User.query()
-      .where('reset_password_token', token)
-      .where('reset_password_expires_at', '>', DateTime.now().toSQL())
+    const otpToken = await OtpToken.query()
+      .where('token_hash', token)
+      .where('purpose', 'reset_password')
+      .whereNull('used_at')
+      .where('expires_at', '>', DateTime.now().toSQL())
+      .preload('user')
       .first()
 
-    if (!user) {
+    if (!otpToken) {
       return response.badRequest({ message: 'Lien invalide ou expiré.' })
     }
 
+    const user = otpToken.user
     user.password = password
-    user.resetPasswordToken = null
-    user.resetPasswordExpiresAt = null
     await user.save()
+
+    otpToken.usedAt = DateTime.now()
+    await otpToken.save()
 
     return response.ok({ message: 'Votre mot de passe a été réinitialisé avec succès.' })
-  }
-
-  async verifyEmail({ request, response }: HttpContext) {
-    const token = request.input('token')
-
-    if (!token) {
-      return response.badRequest({ message: 'Token manquant' })
-    }
-
-    const user = await User.findBy('verificationToken', token)
-
-    if (!user) {
-      return response.badRequest({ message: 'Token invalide' })
-    }
-
-    user.isVerified = true
-    user.verificationToken = null
-    await user.save()
-
-    return response.ok({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' })
   }
 
   async login({ request, response }: HttpContext) {
@@ -180,12 +181,11 @@ export default class AuthController {
   async update({ auth, request, response }: HttpContext) {
     const user = await auth.getUserOrFail()
 
-    // Validation personnalisée
+    // Validation
     const payload = await request.validateUsing(
       vine.compile(
         vine.object({
           fullName: vine.string().optional(),
-          // On valide que l'email est valide, mais on gère l'unicité nous-mêmes pour le "pendingEmail"
           email: vine.string().email().normalizeEmail().optional(),
           password: vine.string().minLength(8).maxLength(255).optional(),
           currentPassword: vine.string().optional(),
@@ -195,7 +195,6 @@ export default class AuthController {
 
     let emailChangeMessage = null;
 
-    // Gestion du changement de mot de passe
     if (payload.password) {
       if (!payload.currentPassword) {
         return response.badRequest({
@@ -209,34 +208,50 @@ export default class AuthController {
       user.password = payload.password
     }
 
-    // Changement de nom
     if (payload.fullName) {
       user.fullName = payload.fullName
     }
 
-    // Gestion du changement d'email
+    // Gestion du changement d'email via OtpToken
     if (payload.email && payload.email !== user.email) {
-      // Vérifier si l'email est déjà utilisé par un AUTRE utilisateur
       const existingUser = await User.findBy('email', payload.email)
       if (existingUser) {
         return response.badRequest({ message: 'Cet email est déjà utilisé par un autre compte.' })
       }
 
-      const emailChangeToken = crypto.randomBytes(32).toString('hex')
+      const token = crypto.randomBytes(32).toString('hex')
 
-      user.pendingEmail = payload.email
-      user.emailChangeToken = emailChangeToken
-      user.emailChangeExpiresAt = DateTime.now().plus({ hours: 1 })
-
+      // On stocke le nouvel email dans la colonne 'data' du token
+      await OtpToken.create({
+        userId: user.id,
+        tokenHash: token,
+        purpose: 'change_email',
+        data: { newEmail: payload.email },
+        expiresAt: DateTime.now().plus({ hours: 1 }),
+      })
+      
+      // On attache temporairement pendingEmail à l'objet user pour l'envoi du mail, 
+      // même si ce n'est plus dans la DB user
+      user.pendingEmail = payload.email 
+      
       const frontendUrl = 'http://localhost:5173'
-      const verifyUrl = `${frontendUrl}/verify-change-email?token=${emailChangeToken}`
+      const verifyUrl = `${frontendUrl}/verify-change-email?token=${token}`
 
       await mail.send(new ChangeEmailNotification(user, verifyUrl))
-
-      emailChangeMessage = `Un email de vérification a été envoyé à ${payload.email}. Votre email ne sera mis à jour qu'après validation.`
+      
+      emailChangeMessage = `Un email de vérification a été envoyé à ${payload.email}.`
     }
 
     await user.save()
+
+    // Pour la réponse, on peut vérifier s'il y a un token actif 'change_email' pour ce user
+    const activeChangeEmailToken = await OtpToken.query()
+       .where('user_id', user.id)
+       .where('purpose', 'change_email')
+       .whereNull('used_at')
+       .where('expires_at', '>', DateTime.now().toSQL())
+       .orderBy('created_at', 'desc')
+       .first()
 
     return response.ok({
       message: emailChangeMessage || 'Profil mis à jour avec succès.',
@@ -244,8 +259,8 @@ export default class AuthController {
         user: {
           id: user.id,
           fullName: user.fullName,
-          email: user.email, // On renvoie l'ancien email tant que le nouveau n'est pas validé
-          pendingEmail: user.pendingEmail
+          email: user.email,
+          pendingEmail: activeChangeEmailToken ? activeChangeEmailToken.data?.newEmail : null
         },
       },
     })
@@ -258,22 +273,30 @@ export default class AuthController {
       return response.badRequest({ message: 'Token manquant' })
     }
 
-    const user = await User.query()
-      .where('email_change_token', token)
-      .where('email_change_expires_at', '>', DateTime.now().toSQL())
+    const otpToken = await OtpToken.query()
+      .where('token_hash', token)
+      .where('purpose', 'change_email')
+      .whereNull('used_at')
+      .where('expires_at', '>', DateTime.now().toSQL())
+      .preload('user')
       .first()
 
-    if (!user) {
+    if (!otpToken) {
       return response.badRequest({ message: 'Lien invalide ou expiré.' })
     }
 
-    // Appliquer le changement
-    user.email = user.pendingEmail!
-    user.pendingEmail = null
-    user.emailChangeToken = null
-    user.emailChangeExpiresAt = null
+    const user = otpToken.user
+    const newEmail = otpToken.data?.newEmail
 
+    if (!newEmail) {
+       return response.badRequest({ message: 'Données de changement d\'email corrompues.' })
+    }
+
+    user.email = newEmail
     await user.save()
+
+    otpToken.usedAt = DateTime.now()
+    await otpToken.save()
 
     return response.ok({ message: 'Votre adresse email a été mise à jour avec succès.' })
   }
