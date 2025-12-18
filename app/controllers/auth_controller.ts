@@ -3,31 +3,69 @@ import { loginValidator } from '#validators/auth/login'
 import { registerValidator } from '#validators/auth/register'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
+import VerifyEmailNotification from '#mails/verify_email_notification'
+import mail from '@adonisjs/mail/services/main'
+import crypto from 'node:crypto'
+import env from '#start/env'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
     const payload = await request.validateUsing(registerValidator)
 
-    const user = await User.create(payload)
+    const verificationToken = crypto.randomBytes(32).toString('hex')
 
-    const token = await User.accessTokens.create(user)
+    const user = await User.create({
+      ...payload,
+      isVerified: false,
+      verificationToken: verificationToken,
+    })
+
+    // Construire l'URL de vérification (frontend URL si possible, sinon API direct qui redirige)
+    // Ici on suppose que le lien pointe vers une route API qui valide et redirige, 
+    // OU vers une page frontend qui appelle l'API.
+    // Faisons pointer vers l'API Backend pour valider directement pour simplifier la démo, 
+    // ou mieux: une URL frontend qui contient le token.
+    
+    // Comme je ne connais pas l'URL du frontend en prod/dev de manière sûre autre que localhost:5173,
+    // je vais utiliser une variable ou hardcoder pour le dev.
+    const frontendUrl = 'http://localhost:5173' // Idéalement dans .env
+    const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`
+
+    await mail.send(new VerifyEmailNotification(user, verifyUrl))
 
     return response.created({
-      message: 'User registered successfully',
-      data: {
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-        },
-        token: token.value!.release(),
-      },
+      message: 'Compte créé avec succès. Veuillez vérifier vos emails pour activer votre compte.',
     })
+  }
+
+  async verifyEmail({ request, response }: HttpContext) {
+    const token = request.input('token')
+
+    if (!token) {
+      return response.badRequest({ message: 'Token manquant' })
+    }
+
+    const user = await User.findBy('verificationToken', token)
+
+    if (!user) {
+      return response.badRequest({ message: 'Token invalide' })
+    }
+
+    user.isVerified = true
+    user.verificationToken = null
+    await user.save()
+
+    return response.ok({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' })
   }
 
   async login({ request, response }: HttpContext) {
     const payload = await request.validateUsing(loginValidator)
     const user = await User.verifyCredentials(payload.email, payload.password)
+    
+    if (!user.isVerified) {
+      return response.unauthorized({ message: 'Veuillez vérifier votre email avant de vous connecter.' })
+    }
+
     const token = await User.accessTokens.create(user)
     return response.ok({
       message: 'Login successful',
