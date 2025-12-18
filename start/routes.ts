@@ -29,3 +29,6 @@ import './routes/expenses.js'
 
 // Routes de gestion des participants et invitations
 import './routes/participants.js'
+
+// Routes de gestion des photos
+import './routes/photos.js'

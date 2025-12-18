@@ -7,7 +7,8 @@ import { DateTime } from 'luxon'
 
 export default class StopsController {
   /**
-   * GET /trips/:tripId/stops
+   * GET /trips/
+   * :tripId/stops
    * Liste toutes les étapes d'un voyage
    */
   async index({ auth, params, response }: HttpContext) {
