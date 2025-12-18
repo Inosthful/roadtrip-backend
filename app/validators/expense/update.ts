@@ -8,7 +8,7 @@ export const updateExpenseValidator = vine.compile(
     category: vine
       .enum(['transport', 'fuel', 'tolls', 'accommodation', 'food', 'activity', 'other'])
       .optional(),
-    stopId: vine.number().positive().optional().nullable(),
     expenseDate: vine.date().optional(),
+    paidBy: vine.number().positive().optional(),
   })
 )

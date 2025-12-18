@@ -17,5 +17,6 @@ export const createExpenseValidator = vine.compile(
       'other',
     ]),
     expenseDate: vine.date(),
+    paidBy: vine.number().positive().optional(),
   })
 )
