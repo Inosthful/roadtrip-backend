@@ -101,4 +101,13 @@ export default class AuthController {
       },
     })
   }
+
+  async delete({ auth, response }: HttpContext) {
+    const user = await auth.getUserOrFail()
+    await user.delete()
+
+    return response.ok({
+      message: 'User deleted successfully',
+    })
+  }
 }

@@ -9,5 +9,6 @@ router
     router.post('/logout', [AuthController, 'logout']).use(middleware.auth())
     router.get('/me', [AuthController, 'me']).use(middleware.auth())
     router.put('/me', [AuthController, 'update']).use(middleware.auth())
+    router.delete('/me', [AuthController, 'delete']).use(middleware.auth())
   })
   .prefix('/auth')
