@@ -6,6 +6,7 @@ router
   .group(() => {
     router.post('/register', [AuthController, 'register'])
     router.post('/login', [AuthController, 'login'])
+    router.post('/verify-email', [AuthController, 'verifyEmail'])
     router.post('/logout', [AuthController, 'logout']).use(middleware.auth())
     router.get('/me', [AuthController, 'me']).use(middleware.auth())
     router.put('/me', [AuthController, 'update']).use(middleware.auth())
