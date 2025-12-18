@@ -4,9 +4,11 @@ import { registerValidator } from '#validators/auth/register'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 import VerifyEmailNotification from '#mails/verify_email_notification'
+import ResetPasswordNotification from '#mails/reset_password_notification'
 import mail from '@adonisjs/mail/services/main'
 import crypto from 'node:crypto'
 import env from '#start/env'
+import { DateTime } from 'luxon'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
@@ -20,15 +22,8 @@ export default class AuthController {
       verificationToken: verificationToken,
     })
 
-    // Construire l'URL de vérification (frontend URL si possible, sinon API direct qui redirige)
-    // Ici on suppose que le lien pointe vers une route API qui valide et redirige, 
-    // OU vers une page frontend qui appelle l'API.
-    // Faisons pointer vers l'API Backend pour valider directement pour simplifier la démo, 
-    // ou mieux: une URL frontend qui contient le token.
-    
-    // Comme je ne connais pas l'URL du frontend en prod/dev de manière sûre autre que localhost:5173,
-    // je vais utiliser une variable ou hardcoder pour le dev.
-    const frontendUrl = 'http://localhost:5173' // Idéalement dans .env
+    // Construire l'URL de vérification
+    const frontendUrl = 'http://localhost:5173'
     const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`
 
     await mail.send(new VerifyEmailNotification(user, verifyUrl))
@@ -56,6 +51,64 @@ export default class AuthController {
     await user.save()
 
     return response.ok({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' })
+  }
+
+  async forgotPassword({ request, response }: HttpContext) {
+    const { email } = await request.validateUsing(
+      vine.compile(
+        vine.object({
+          email: vine.string().email(),
+        })
+      )
+    )
+
+    const user = await User.findBy('email', email)
+
+    // Pour des raisons de sécurité, on ne dit pas si l'email existe ou non, sauf si on veut aider l'utilisateur explicitement.
+    // L'utilisateur a demandé d'afficher un message si l'email n'existe pas, donc on le fait.
+    if (!user) {
+      return response.notFound({ message: "Aucun compte n'est associé à cet email." })
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    user.resetPasswordToken = resetToken
+    // Expire dans 1 heure
+    user.resetPasswordExpiresAt = DateTime.now().plus({ hours: 1 })
+    await user.save()
+
+    const frontendUrl = 'http://localhost:5173'
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`
+
+    await mail.send(new ResetPasswordNotification(user, resetUrl))
+
+    return response.ok({ message: 'Un email de réinitialisation vous a été envoyé.' })
+  }
+
+  async resetPassword({ request, response }: HttpContext) {
+    const { token, password } = await request.validateUsing(
+      vine.compile(
+        vine.object({
+          token: vine.string(),
+          password: vine.string().minLength(8), // Ajouter ici les mêmes règles de validation que le register si besoin
+        })
+      )
+    )
+
+    const user = await User.query()
+      .where('reset_password_token', token)
+      .where('reset_password_expires_at', '>', DateTime.now().toSQL())
+      .first()
+
+    if (!user) {
+      return response.badRequest({ message: 'Lien invalide ou expiré.' })
+    }
+
+    user.password = password
+    user.resetPasswordToken = null
+    user.resetPasswordExpiresAt = null
+    await user.save()
+
+    return response.ok({ message: 'Votre mot de passe a été réinitialisé avec succès.' })
   }
 
   async login({ request, response }: HttpContext) {

@@ -33,6 +33,12 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare verificationToken: string | null
 
+  @column()
+  declare resetPasswordToken: string | null
+
+  @column.dateTime()
+  declare resetPasswordExpiresAt: DateTime | null
+
   @column({ serializeAs: null })
   declare password: string
 
