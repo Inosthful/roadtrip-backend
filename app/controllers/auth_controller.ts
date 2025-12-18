@@ -3,6 +3,7 @@ import { loginValidator } from '#validators/auth/login'
 import { registerValidator } from '#validators/auth/register'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
+import hash from '@adonisjs/core/services/hash'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
@@ -82,12 +83,28 @@ export default class AuthController {
             return !existingUser || existingUser.id === user.id
           })
           .optional(),
+        password: vine.string().minLength(8).maxLength(255).optional(),
+        currentPassword: vine.string().optional(),
       })
     )
 
     const payload = await request.validateUsing(validator)
 
-    user.merge(payload)
+    if (payload.password) {
+      if (!payload.currentPassword) {
+        return response.badRequest({
+          message: 'Le mot de passe actuel est requis pour définir un nouveau mot de passe.',
+        })
+      }
+      const isValid = await hash.verify(user.password, payload.currentPassword)
+      if (!isValid) {
+        return response.badRequest({ message: 'Le mot de passe actuel est incorrect.' })
+      }
+    }
+
+    const { currentPassword, ...dataToUpdate } = payload
+
+    user.merge(dataToUpdate)
     await user.save()
 
     return response.ok({
