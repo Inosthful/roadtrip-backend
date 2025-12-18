@@ -112,6 +112,26 @@ export default class AuthController {
     return response.ok({ message: 'Votre mot de passe a été réinitialisé avec succès.' })
   }
 
+  async verifyEmail({ request, response }: HttpContext) {
+    const token = request.input('token')
+
+    if (!token) {
+      return response.badRequest({ message: 'Token manquant' })
+    }
+
+    const user = await User.findBy('verificationToken', token)
+
+    if (!user) {
+      return response.badRequest({ message: 'Token invalide' })
+    }
+
+    user.isVerified = true
+    user.verificationToken = null
+    await user.save()
+
+    return response.ok({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' })
+  }
+
   async login({ request, response }: HttpContext) {
     const payload = await request.validateUsing(loginValidator)
     const user = await User.verifyCredentials(payload.email, payload.password)
