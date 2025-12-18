@@ -7,6 +7,7 @@ router
     router.post('/register', [AuthController, 'register'])
     router.post('/login', [AuthController, 'login'])
     router.post('/verify-email', [AuthController, 'verifyEmail'])
+    router.post('/verify-email-change', [AuthController, 'verifyChangeEmail'])
     router.post('/forgot-password', [AuthController, 'forgotPassword'])
     router.post('/reset-password', [AuthController, 'resetPassword'])
     router.post('/logout', [AuthController, 'logout']).use(middleware.auth())

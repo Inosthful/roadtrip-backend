@@ -5,6 +5,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 import VerifyEmailNotification from '#mails/verify_email_notification'
 import ResetPasswordNotification from '#mails/reset_password_notification'
+import ChangeEmailNotification from '#mails/change_email_notification'
 import mail from '@adonisjs/mail/services/main'
 import crypto from 'node:crypto'
 import env from '#start/env'
@@ -179,28 +180,22 @@ export default class AuthController {
   async update({ auth, request, response }: HttpContext) {
     const user = await auth.getUserOrFail()
 
-    const validator = vine.compile(
-      vine.object({
-        fullName: vine.string().optional(),
-        email: vine
-          .string()
-          .email()
-          .normalizeEmail()
-          .unique(async (_db, value) => {
-            if (!value) {
-              return true
-            }
-            const existingUser = await User.findBy('email', value)
-            return !existingUser || existingUser.id === user.id
-          })
-          .optional(),
-        password: vine.string().minLength(8).maxLength(255).optional(),
-        currentPassword: vine.string().optional(),
-      })
+    // Validation personnalisée
+    const payload = await request.validateUsing(
+      vine.compile(
+        vine.object({
+          fullName: vine.string().optional(),
+          // On valide que l'email est valide, mais on gère l'unicité nous-mêmes pour le "pendingEmail"
+          email: vine.string().email().normalizeEmail().optional(),
+          password: vine.string().minLength(8).maxLength(255).optional(),
+          currentPassword: vine.string().optional(),
+        })
+      )
     )
 
-    const payload = await request.validateUsing(validator)
+    let emailChangeMessage = null;
 
+    // Gestion du changement de mot de passe
     if (payload.password) {
       if (!payload.currentPassword) {
         return response.badRequest({
@@ -211,23 +206,76 @@ export default class AuthController {
       if (!isValid) {
         return response.badRequest({ message: 'Le mot de passe actuel est incorrect.' })
       }
+      user.password = payload.password
     }
 
-    const { currentPassword, ...dataToUpdate } = payload
+    // Changement de nom
+    if (payload.fullName) {
+      user.fullName = payload.fullName
+    }
 
-    user.merge(dataToUpdate)
+    // Gestion du changement d'email
+    if (payload.email && payload.email !== user.email) {
+      // Vérifier si l'email est déjà utilisé par un AUTRE utilisateur
+      const existingUser = await User.findBy('email', payload.email)
+      if (existingUser) {
+        return response.badRequest({ message: 'Cet email est déjà utilisé par un autre compte.' })
+      }
+
+      const emailChangeToken = crypto.randomBytes(32).toString('hex')
+
+      user.pendingEmail = payload.email
+      user.emailChangeToken = emailChangeToken
+      user.emailChangeExpiresAt = DateTime.now().plus({ hours: 1 })
+
+      const frontendUrl = 'http://localhost:5173'
+      const verifyUrl = `${frontendUrl}/verify-change-email?token=${emailChangeToken}`
+
+      await mail.send(new ChangeEmailNotification(user, verifyUrl))
+
+      emailChangeMessage = `Un email de vérification a été envoyé à ${payload.email}. Votre email ne sera mis à jour qu'après validation.`
+    }
+
     await user.save()
 
     return response.ok({
-      message: 'User updated successfully',
+      message: emailChangeMessage || 'Profil mis à jour avec succès.',
       data: {
         user: {
           id: user.id,
           fullName: user.fullName,
-          email: user.email,
+          email: user.email, // On renvoie l'ancien email tant que le nouveau n'est pas validé
+          pendingEmail: user.pendingEmail
         },
       },
     })
+  }
+
+  async verifyChangeEmail({ request, response }: HttpContext) {
+    const token = request.input('token')
+
+    if (!token) {
+      return response.badRequest({ message: 'Token manquant' })
+    }
+
+    const user = await User.query()
+      .where('email_change_token', token)
+      .where('email_change_expires_at', '>', DateTime.now().toSQL())
+      .first()
+
+    if (!user) {
+      return response.badRequest({ message: 'Lien invalide ou expiré.' })
+    }
+
+    // Appliquer le changement
+    user.email = user.pendingEmail!
+    user.pendingEmail = null
+    user.emailChangeToken = null
+    user.emailChangeExpiresAt = null
+
+    await user.save()
+
+    return response.ok({ message: 'Votre adresse email a été mise à jour avec succès.' })
   }
 
   async delete({ auth, response }: HttpContext) {
