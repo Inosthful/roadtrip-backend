@@ -5,7 +5,9 @@ export const updateExpenseValidator = vine.compile(
     title: vine.string().trim().minLength(3).maxLength(255).optional(),
     description: vine.string().trim().optional().nullable(),
     amount: vine.number().min(0).optional(),
-    category: vine.enum(['transport', 'accommodation', 'food', 'activity', 'other']).optional(),
+    category: vine
+      .enum(['transport', 'fuel', 'tolls', 'accommodation', 'food', 'activity', 'other'])
+      .optional(),
     stopId: vine.number().positive().optional().nullable(),
     expenseDate: vine.date().optional(),
   })

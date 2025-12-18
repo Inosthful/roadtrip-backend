@@ -69,6 +69,9 @@ export default class TripsController {
       .preload('stops', (query) => {
         query.orderBy('order', 'asc')
       })
+      .preload('expenses', (query) => {
+        query.preload('payer').preload('splits').orderBy('expenseDate', 'desc')
+      })
       .firstOrFail()
 
     // Vérifier que l'user a accès (créateur ou participant)
@@ -185,9 +188,9 @@ export default class TripsController {
     const distanceAfter = optimizer.calculateTotalDistance(optimizedStops)
 
     // Mettre à jour les "order" en base de données
-    for (let i = 0; i < optimizedStops.length; i++) {
-      optimizedStops[i].order = i + 1
-      await optimizedStops[i].save()
+    for (const [i, optimizedStop] of optimizedStops.entries()) {
+      optimizedStop.order = i + 1
+      await optimizedStop.save()
     }
 
     return response.ok({

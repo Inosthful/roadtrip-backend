@@ -8,5 +8,8 @@ export const updateTripValidator = vine.compile(
     endDate: vine.date().optional(),
     budget: vine.number().min(0).optional(),
     status: vine.enum(['planning', 'active', 'completed', 'cancelled']).optional(),
+    carConsumption: vine.number().min(0).optional(),
+    fuelPrice: vine.number().min(0).optional(),
+    tollRate: vine.number().min(0).optional(),
   })
 )
