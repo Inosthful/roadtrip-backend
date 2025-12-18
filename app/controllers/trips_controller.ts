@@ -1,9 +1,11 @@
 import Trip from '#models/trip'
 import TripParticipant from '#models/trip_participant'
+import Stop from '#models/stop'
 import { createTripValidator } from '#validators/trip/create'
 import { updateTripValidator } from '#validators/trip/update'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
+import { ItineraryOptimizer } from '#services/itinerary_optimizer'
 
 export default class TripsController {
   /**
@@ -131,5 +133,75 @@ export default class TripsController {
     await trip.delete()
 
     return response.noContent()
+  }
+
+  /**
+   * POST /trips/:id/optimize
+   * Optimise l'itinéraire du trip en minimisant la distance totale
+   *
+   * Algorithme :
+   * - Utilise la formule de Haversine (distance à vol d'oiseau)
+   * - Applique l'algorithme du plus proche voisin
+   * - Respecte les contraintes (stops lockés gardent leur position)
+   *
+   * Permissions : Participant du trip (creator/organizer/member)
+   */
+  async optimize({ auth, params, response }: HttpContext) {
+    const user = await auth.getUserOrFail()
+    const tripId = params.id
+
+    // Vérifier que l'user a accès au trip
+    const trip = await Trip.findOrFail(tripId)
+
+    const participation = await TripParticipant.query()
+      .where('trip_id', tripId)
+      .where('user_id', user.id)
+      .where('invitation_status', 'accepted')
+      .first()
+
+    if (!participation) {
+      return response.forbidden({
+        message: 'You must be a participant to optimize this trip',
+      })
+    }
+
+    // Récupérer tous les stops du trip (triés par ordre actuel)
+    const stops = await Stop.query().where('trip_id', tripId).orderBy('order', 'asc')
+
+    if (stops.length < 2) {
+      return response.badRequest({
+        message: 'Trip must have at least 2 stops to optimize',
+      })
+    }
+
+    // Calculer la distance avant optimisation
+    const optimizer = new ItineraryOptimizer()
+    const distanceBefore = optimizer.calculateTotalDistance(stops)
+
+    // Optimiser l'itinéraire
+    const optimizedStops = optimizer.optimize(stops)
+
+    // Calculer la distance après optimisation
+    const distanceAfter = optimizer.calculateTotalDistance(optimizedStops)
+
+    // Mettre à jour les "order" en base de données
+    for (let i = 0; i < optimizedStops.length; i++) {
+      optimizedStops[i].order = i + 1
+      await optimizedStops[i].save()
+    }
+
+    return response.ok({
+      message: 'Itinerary optimized successfully',
+      data: {
+        stops: optimizedStops,
+        optimization: {
+          distance_before_km: distanceBefore,
+          distance_after_km: distanceAfter,
+          distance_saved_km: Math.round((distanceBefore - distanceAfter) * 10) / 10,
+          improvement_percent:
+            Math.round(((distanceBefore - distanceAfter) / distanceBefore) * 1000) / 10,
+        },
+      },
+    })
   }
 }

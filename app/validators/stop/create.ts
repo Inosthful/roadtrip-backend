@@ -2,7 +2,6 @@ import vine from '@vinejs/vine'
 
 export const createStopValidator = vine.compile(
   vine.object({
-    tripId: vine.number().positive(),
     title: vine.string().trim().minLength(3).maxLength(255),
     description: vine.string().trim().optional(),
     type: vine.enum(['accommodation', 'restaurant', 'activity', 'poi']),

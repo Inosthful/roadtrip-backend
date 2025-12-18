@@ -17,6 +17,9 @@ router
     // Mettre à jour un trip
     router.patch('/:id', [TripsController, 'update'])
 
+    // Optimiser l'itinéraire d'un trip
+    router.post('/:id/optimize', [TripsController, 'optimize'])
+
     // Supprimer un trip
     router.delete('/:id', [TripsController, 'destroy'])
   })

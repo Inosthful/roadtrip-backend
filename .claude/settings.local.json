@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(node ace make:migration:*)",
-      "Bash(node ace make:controller:*)"
+      "Bash(node ace make:controller:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
     ]
   },
   "outputStyle": "Learning"
