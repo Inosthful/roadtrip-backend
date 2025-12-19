@@ -44,14 +44,14 @@ export default class ExpensesController {
       return response.forbidden({ message: 'Access denied to this trip' })
     }
     const expense = await Expense.create({
-      tripId: params.tripId,
+      tripId: trip.id,
       stopId: payload.stopId,
       title: payload.title,
       description: payload.description,
       amount: payload.amount,
       category: payload.category,
+      paidBy: payload.paidBy || user.id,
       expenseDate: DateTime.fromJSDate(payload.expenseDate),
-      paidBy: user.id, // Celui qui crée la dépense est celui qui a payé
     })
 
     // 1. Charger les participants du voyage

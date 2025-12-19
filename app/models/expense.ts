@@ -29,7 +29,7 @@ export default class Expense extends BaseModel {
 
   // Catégorie
   @column()
-  declare category: 'transport' | 'accommodation' | 'food' | 'activity' | 'other'
+  declare category: 'transport' | 'fuel' | 'tolls' | 'accommodation' | 'food' | 'activity' | 'other'
 
   // Qui a payé
   @column()
