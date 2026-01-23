@@ -55,7 +55,7 @@ export default class User extends compose(BaseModel, AuthFinder) {
     pivotForeignKey: 'user_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'trip_id',
-    pivotColumns: ['role', 'invitation_status', 'invited_at', 'joined_at'],
+    pivotColumns: ['id', 'role', 'invitation_status', 'invited_at', 'joined_at'],
   })
   declare participatingTrips: ManyToMany<typeof Trip>
 

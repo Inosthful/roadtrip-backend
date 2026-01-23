@@ -73,7 +73,7 @@ export default class Trip extends BaseModel {
     pivotForeignKey: 'trip_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'user_id',
-    pivotColumns: ['role', 'invitation_status', 'invited_at', 'joined_at'],
+    pivotColumns: ['id', 'role', 'invitation_status', 'invited_at', 'joined_at'],
   })
   declare participants: ManyToMany<typeof User>
 

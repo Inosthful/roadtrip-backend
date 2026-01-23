@@ -300,4 +300,31 @@ export default class ParticipantsController {
       message: isSelfRemoval ? 'You have left the trip' : 'Participant removed successfully',
     })
   }
+
+  /**
+   * POST /participants/check
+   * Vérifie si un utilisateur existe par email
+   */
+  async checkUser({ request, response }: HttpContext) {
+    const email = request.input('email')
+    
+    if (!email) {
+      return response.badRequest({ message: 'Email is required' })
+    }
+
+    const user = await User.findBy('email', email)
+
+    if (!user) {
+      return response.notFound({ message: 'Aucun utilisateur trouvé avec cet email' })
+    }
+
+    return response.ok({ 
+      exists: true,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email
+      }
+    })
+  }
 }

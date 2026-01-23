@@ -19,9 +19,17 @@ export default class TripsController {
     const createdTrips = await user.related('createdTrips').query()
     const participatingTrips = await user.related('participatingTrips').query()
 
+    const formattedParticipatingTrips = participatingTrips.map((trip) => {
+      const serialized = trip.serialize()
+      if (trip.$extras) {
+        serialized.invitationStatus = trip.$extras.pivot_invitation_status
+      }
+      return serialized
+    })
+
     return response.ok({
       createdTrips,
-      participatingTrips,
+      participatingTrips: formattedParticipatingTrips,
     })
   }
 
@@ -32,6 +40,14 @@ export default class TripsController {
   async store({ auth, request, response }: HttpContext) {
     const user = await auth.getUserOrFail()
     const payload = await request.validateUsing(createTripValidator)
+
+    const startDate = DateTime.fromJSDate(payload.startDate)
+    // On enlève les heures/minutes pour comparer juste la date
+    if (startDate < DateTime.now().startOf('day')) {
+      return response.badRequest({
+        message: 'La date de début ne peut pas être dans le passé',
+      })
+    }
 
     // Créer le trip
     const trip = await Trip.create({
@@ -82,7 +98,22 @@ export default class TripsController {
       return response.forbidden({ message: 'Access denied' })
     }
 
-    return response.ok(trip)
+    const tripJson = trip.serialize()
+    tripJson.participants = trip.participants.map((p) => {
+      const pJson = p.serialize()
+      if (p.$extras) {
+        pJson.pivot = {
+          id: p.$extras.pivot_id,
+          role: p.$extras.pivot_role,
+          invitationStatus: p.$extras.pivot_invitation_status,
+          invitedAt: p.$extras.pivot_invited_at,
+          joinedAt: p.$extras.pivot_joined_at,
+        }
+      }
+      return pJson
+    })
+
+    return response.ok(tripJson)
   }
 
   /**
@@ -206,5 +237,83 @@ export default class TripsController {
         },
       },
     })
+  }
+
+  /**
+   * GET /trips/finished
+   * Récupère les trips terminés (date de fin passée)
+   * Route publique
+   */
+  async finished({ response }: HttpContext) {
+    const finishedTrips = await Trip.query()
+      .where('endDate', '<', DateTime.now().toSQL())
+      .orderBy('endDate', 'desc')
+      .limit(6) // On en récupère 6 pour l'affichage
+      .preload('stops', (query) => {
+        query.where('type', 'city').orderBy('order', 'asc')
+      })
+
+    return response.ok(finishedTrips)
+  }
+
+  /**
+   * POST /trips/:id/duplicate
+   * Duplique un voyage existant pour l'utilisateur connecté
+   */
+  async duplicate({ auth, params, response }: HttpContext) {
+    const user = await auth.getUserOrFail()
+    const tripId = params.id
+
+    // Récupérer le voyage original avec ses stops
+    const originalTrip = await Trip.query()
+      .where('id', tripId)
+      .preload('stops')
+      .firstOrFail()
+
+    // Créer le nouveau voyage
+    const newTrip = await Trip.create({
+      title: originalTrip.title,
+      description: originalTrip.description,
+      startDate: DateTime.now(),
+      endDate: DateTime.now(),
+      budget: originalTrip.budget,
+      status: 'planning',
+      carConsumption: originalTrip.carConsumption,
+      fuelPrice: originalTrip.fuelPrice,
+      tollRate: originalTrip.tollRate,
+      creatorId: user.id,
+    })
+
+    // Ajouter le créateur comme participant
+    await TripParticipant.create({
+      tripId: newTrip.id,
+      userId: user.id,
+      role: 'creator',
+      invitationStatus: 'accepted',
+      joinedAt: DateTime.now(),
+    })
+
+    // Dupliquer les stops
+    if (originalTrip.stops && originalTrip.stops.length > 0) {
+      for (const stop of originalTrip.stops) {
+        await Stop.create({
+          tripId: newTrip.id,
+          title: stop.title,
+          description: stop.description,
+          type: stop.type,
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+          address: stop.address,
+          order: stop.order,
+          isLocked: stop.isLocked,
+          // On met les dates à aujourd'hui comme demandé
+          arrivalDate: DateTime.now(),
+          departureDate: DateTime.now(),
+          createdBy: user.id,
+        })
+      }
+    }
+
+    return response.created(newTrip)
   }
 }
