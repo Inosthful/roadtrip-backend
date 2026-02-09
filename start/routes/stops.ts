@@ -17,6 +17,9 @@ router
     // Mettre à jour une étape
     router.patch('/stops/:id', [StopsController, 'update'])
 
+    // Réorganiser les étapes
+    router.patch('/trips/:tripId/stops/reorder', [StopsController, 'reorder'])
+
     // Supprimer une étape
     router.delete('/stops/:id', [StopsController, 'destroy'])
   })

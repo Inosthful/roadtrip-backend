@@ -3,10 +3,33 @@ import Trip from '#models/trip'
 import Expense from '#models/expense'
 import { createStopValidator } from '#validators/stop/create'
 import { updateStopValidator } from '#validators/stop/update'
+import { reorderStopsValidator } from '#validators/stop/reorder'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 
 export default class StopsController {
+  /**
+   * PATCH /trips/:tripId/stops/reorder
+   * Réorganiser plusieurs étapes d'un coup
+   */
+  async reorder({ auth, params, request, response }: HttpContext) {
+    const user = await auth.getUserOrFail()
+    const trip = await Trip.findOrFail(params.tripId)
+    const hasAccess = await this.checkTripAccess(trip, user.id)
+
+    if (!hasAccess) {
+      return response.forbidden({ message: 'Access denied' })
+    }
+
+    const payload = await request.validateUsing(reorderStopsValidator)
+
+    for (const item of payload.stops) {
+      await Stop.query().where('id', item.id).where('trip_id', trip.id).update({ order: item.order })
+    }
+
+    return response.ok({ message: 'Order updated successfully' })
+  }
+
   /**
    * GET /trips/
    * :tripId/stops
