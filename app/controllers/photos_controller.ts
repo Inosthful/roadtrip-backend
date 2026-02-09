@@ -48,11 +48,6 @@ export default class PhotosController {
     // Valider les données
     const payload = await request.validateUsing(uploadPhotoValidator)
 
-    // Vérifier qu'un fichier a bien été uploadé
-    if (!payload.photo) {
-      return response.badRequest({ message: 'Photo file is required' })
-    }
-
     // Générer un nom de fichier unique avec extension : 6chars-nom-formate.ext
     const fileName = formatFileName(payload.photo.clientName, payload.photo.extname)
 
@@ -63,10 +58,6 @@ export default class PhotosController {
       stopId: stopId,
       userId: user.id,
       filePath: fileName,
-      caption: payload.caption,
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      takenAt: payload.takenAt ? DateTime.fromJSDate(payload.takenAt) : null,
     })
 
     return response.created({
@@ -134,46 +125,6 @@ export default class PhotosController {
 
     return response.ok({
       message: 'Photo retrieved successfully',
-      data: photo,
-    })
-  }
-
-  /**
-   * PATCH /photos/:id
-   * Modifie les métadonnées d'une photo (pas le fichier lui-même)
-   * Seul l'uploader de la photo peut la modifier
-   */
-  async update({ params, request, auth, response }: HttpContext) {
-    const user = await auth.getUserOrFail()
-    const photoId = params.id
-
-    // Charger la photo
-    const photo = await Photo.query()
-      .where('id', photoId)
-      .preload('stop', (query) => {
-        query.preload('trip')
-      })
-      .firstOrFail()
-
-    // Vérifier que c'est bien l'uploader
-    if (photo.userId !== user.id) {
-      return response.forbidden({
-        message: 'You can only edit your own photos',
-      })
-    }
-
-    // Valider et mettre à jour les métadonnées
-    const payload = await request.validateUsing(uploadPhotoValidator)
-
-    photo.caption = payload.caption ?? photo.caption
-    photo.latitude = payload.latitude ?? photo.latitude
-    photo.longitude = payload.longitude ?? photo.longitude
-    photo.takenAt = payload.takenAt ? DateTime.fromJSDate(payload.takenAt) : photo.takenAt
-
-    await photo.save()
-
-    return response.ok({
-      message: 'Photo updated successfully',
       data: photo,
     })
   }

@@ -19,20 +19,6 @@ export default class Photo extends BaseModel {
   @column()
   declare filePath: string
 
-  @column()
-  declare caption: string | null
-
-  // Géolocalisation optionnelle (coordonnées EXIF)
-  @column()
-  declare latitude: number | null
-
-  @column()
-  declare longitude: number | null
-
-  // Date de prise de vue (EXIF)
-  @column.dateTime()
-  declare takenAt: DateTime | null
-
   // Timestamps
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
