@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { GooglePlacesService } from '#services/google_places_service'
 import { autocompleteValidator } from '#validators/place/autocomplete'
 import { placeDetailsValidator } from '#validators/place/details'
+import { nearbySearchValidator } from '#validators/place/nearby'
 
 /**
  * Controller pour les endpoints Google Places API
@@ -91,6 +92,59 @@ export default class PlacesController {
       if (error instanceof Error) {
         return response.badRequest({
           error: 'Erreur lors de la récupération des détails',
+          message: error.message,
+        })
+      }
+      return response.internalServerError({
+        error: 'Erreur interne du serveur',
+      })
+    }
+  }
+
+  /**
+   * Nearby Search - Recherche de lieux à proximité
+   *
+   * GET /places/nearby?latitude=48.8566&longitude=2.3522&radius=5000&types=restaurant&limit=10
+   *
+   * Response:
+   * {
+   *   "places": [
+   *     {
+   *       "placeId": "ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+   *       "displayName": "Le Comptoir du Relais",
+   *       "formattedAddress": "9 Carrefour de l'Odéon, 75006 Paris",
+   *       "location": {
+   *         "latitude": 48.8516,
+   *         "longitude": 2.3391
+   *       },
+   *       "types": ["restaurant", "food"],
+   *       "rating": 4.5
+   *     }
+   *   ]
+   * }
+   */
+  async nearby({ request, response }: HttpContext) {
+    try {
+      // Validation des query params
+      const { latitude, longitude, radius, types, limit } =
+        await request.validateUsing(nearbySearchValidator)
+
+      // Appel au service
+      const result = await this.placesService.nearbySearch(
+        latitude,
+        longitude,
+        radius,
+        types,
+        limit
+      )
+
+      // Retour des lieux à proximité
+      return response.ok(result)
+    } catch (error) {
+      // Gestion des erreurs
+      if (error instanceof Error) {
+        return response.badRequest({
+          error: 'Erreur lors de la recherche nearby',
           message: error.message,
         })
       }

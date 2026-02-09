@@ -1138,9 +1138,10 @@ signal: AbortSignal.timeout(5000)
 - PATCH /photos/:id
 - DELETE /photos/:id
 
-**Google Places API (2 routes - NOUVEAU) :**
+**Google Places API (3 routes - NOUVEAU) :**
 - GET /places/autocomplete?query={text} 🆕
 - GET /places/details/{placeId} 🆕
+- GET /places/nearby?latitude={lat}&longitude={lng}&types={types}&radius={radius}&limit={limit} 🆕
 
 ### Nouveautés ajoutées par l'équipe (merge récent)
 
@@ -1196,3 +1197,210 @@ Le backend Google Places API est **prêt et fonctionnel**.
 - Largement couvert par le Free Trial (275€ pour 90 jours)
 - Aucune facturation avant mai 2026
 
+
+---
+
+## ✅ Ce qui a été fait (Session 7 - 09/02/2026 après-midi)
+
+### Extension API Google Places : Nearby Search ✅
+
+**Nouvel endpoint implémenté :**
+
+```
+app/services/
+  google_places_service.ts           ✅ Méthode nearbySearch() ajoutée
+    - nearbySearch(params)           ✅ Recherche lieux à proximité GPS
+
+app/validators/place/
+  nearby.ts                          ✅ Validation complète (lat, lng, types, radius, limit)
+
+app/controllers/
+  places_controller.ts               ✅ Méthode nearby() ajoutée
+    - nearby()                       ✅ GET /places/nearby
+
+start/routes/
+  places.ts                          ✅ Route nearby ajoutée
+```
+
+**API disponible (3ème endpoint Google Places) :**
+- ✅ GET `/places/nearby` 🔒 (Auth JWT)
+  
+  **Query Parameters :**
+  - `latitude` : required, decimal entre -90 et 90
+  - `longitude` : required, decimal entre -180 et 180  
+  - `types` : optionnel, string défaut "tourist_attraction"
+    - Types disponibles : restaurant, cafe, museum, park, tourist_attraction, bar, etc.
+  - `radius` : optionnel, integer défaut 5000 (mètres, max 50000 = 50km)
+  - `limit` : optionnel, integer défaut 10 (max 20 résultats)
+
+  **Exemple d'appel :**
+  ```
+  GET /places/nearby?latitude=48.8566&longitude=2.3522&types=restaurant&radius=2000&limit=5
+  ```
+
+  **Réponse :**
+  ```json
+  {
+    "places": [
+      {
+        "placeId": "ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+        "displayName": "Le Jules Verne",
+        "formattedAddress": "Avenue Gustave Eiffel, 75007 Paris",
+        "location": {
+          "latitude": 48.858093,
+          "longitude": 2.294694
+        },
+        "types": ["restaurant", "food", "point_of_interest"],
+        "rating": 4.5
+      }
+    ]
+  }
+  ```
+
+**Logique métier implémentée :**
+- ✅ **Validation stricte VineJS** :
+  - Latitude/Longitude : valeurs géographiques correctes
+  - Radius : max 50km (évite les requêtes trop larges)
+  - Limit : max 20 (protection contre abus)
+  
+- ✅ **Field Masking optimisé** : 
+  - Champs demandés : `id, displayName, formattedAddress, location, types, rating`
+  - Économie : Tarif Basic (~$17/1000 req) vs Advanced (~$35/1000 req)
+  
+- ✅ **Timeout 10 secondes** : 
+  - Protection contre les API lentes avec AbortSignal
+  
+- ✅ **Transformation données** : 
+  - Structure complexe Google → Structure simple exploitable
+  - Extraction propre des coordonnées GPS
+  - Gestion des champs optionnels (rating peut être absent)
+
+**Tests réussis :**
+- ✅ Recherche autour Tour Eiffel (48.858370, 2.294481)
+- ✅ Filtrage par type : restaurants vs tourist_attractions
+- ✅ Limitation du radius : 5km vs 2km
+- ✅ Validation des erreurs : latitude invalide, radius trop grand
+
+**Cas d'usage pour le frontend Vue.js :**
+1. **Modal d'ajout d'activité** : 
+   - Afficher automatiquement les POI à proximité de la ville sélectionnée
+   - Filtres par type (restaurants, musées, parcs)
+   
+2. **Suggestions contextuelles** :
+   - "Vous êtes à Paris, découvrez ces lieux à proximité"
+   - Intégration avec Leaflet Map pour affichage visuel
+   
+3. **Exploration locale** :
+   - Chercher des activités autour d'un hébergement
+   - Planifier les visites par zone géographique
+
+**Coût estimé de cette feature :**
+- Appel Nearby Search : $32/1000 requêtes (tarif Basic avec field mask)
+- Avec 50 appels/jour : ~$1.6/mois
+- Total backend (autocomplete + details + nearby) : **~$4/mois**
+- Budget configuré : $5/mois avec alertes à 50%, 75%, 90%, 100%
+- Couvert par Free Trial (275€) jusqu'à mai 2026
+
+**Ce que l'étudiant a appris :**
+
+**1. Google Places API Nearby Search**
+- Différence entre Text Search, Autocomplete et Nearby Search
+- Paramètres géospatiaux (latitude, longitude, radius)
+- Filtrage par types de lieux (restaurants, museums, etc.)
+- Limitation intelligente des résultats (éviter la surcharge)
+
+**2. Validation géospatiale avec VineJS**
+- Rules custom pour latitude (-90 à 90) et longitude (-180 à 180)
+- Validation de radius avec max()
+- Gestion des paramètres optionnels avec defaults
+
+**3. Optimisation des coûts API**
+- Field Masking pour réduire les coûts (Basic vs Advanced pricing)
+- Limitation du nombre de résultats (max 20)
+- Limitation du rayon de recherche (max 50km)
+- Validation côté backend = économie de requêtes invalides
+
+**4. Architecture RESTful pour géolocalisation**
+- Query params pour filtres géospatiaux
+- Structure de réponse normalisée
+- Gestion des coordonnées GPS (lat/lng)
+
+---
+
+## 📊 État final du backend (Session 7 complète)
+
+### ✅ API complètes et testées
+
+**Total : 30 routes API fonctionnelles** (1 route ajoutée)
+
+**Google Places API (3 routes complètes) :**
+- GET /places/autocomplete?query={text} ✅ Suggestions d'adresses
+- GET /places/details/{placeId} ✅ Coordonnées GPS complètes
+- GET /places/nearby?latitude={lat}&longitude={lng}&types={types}&radius={radius}&limit={limit} ✅ Lieux à proximité **[NOUVEAU]**
+
+**Le backend est maintenant 100% fonctionnel pour l'intégration Google Places côté frontend.**
+
+---
+
+## 💡 RECOMMANDATIONS POUR LE FRONTEND
+
+### Intégration complète Google Places
+
+**1. Autocomplete lors de la création de Stop :**
+```typescript
+// Pendant la saisie
+GET /places/autocomplete?query=Paris
+// → Afficher 5 suggestions
+
+// Sélection d'une suggestion
+GET /places/details/{placeId}
+// → Récupérer lat/lng et pré-remplir le formulaire
+```
+
+**2. Affichage des POI à proximité (NOUVEAU) :**
+```typescript
+// Dans la modal d'ajout d'activité
+GET /places/nearby?latitude=48.8566&longitude=2.3522&types=tourist_attraction&limit=10
+// → Afficher sur une Leaflet Map avec markers cliquables
+```
+
+**3. Optimisations frontend recommandées :**
+- ✅ **Cache localStorage** : Stocker les résultats 24h pour éviter les appels répétés
+- ✅ **Debounce** : Attendre 500ms avant d'appeler autocomplete (éviter trop de requêtes)
+- ✅ **Lazy loading** : Charger les POI seulement quand l'utilisateur ouvre la section
+- ✅ **Filtres par type** : Permettre le switch restaurant/museum/park/etc.
+
+**4. Composants Vue suggérés :**
+- `PlaceAutocomplete.vue` : Input avec suggestions
+- `NearbyPlacesMap.vue` : Carte Leaflet avec markers POI
+- `PlaceCard.vue` : Card pour afficher un lieu (nom, adresse, rating, distance)
+
+---
+
+## 🎯 PROCHAINES ÉTAPES (Optionnel Backend)
+
+### Fonctionnalités bonus possibles
+
+1. **Rate Limiting backend** ⏳ (Priorité : BASSE)
+   - Limiter à 20 requêtes/minute par IP pour Google Places
+   - Package : @adonisjs/limiter
+   - **Pas urgent** : Seulement 3 testeurs, risque faible d'abus
+
+2. **Cache backend Redis** ⏳ (Si scaling futur)
+   - Mettre en cache les résultats Google Places côté backend
+   - Partager le cache entre tous les utilisateurs
+   - Réduire drastiquement les coûts Google
+
+3. **Documentation API Swagger/OpenAPI** ⏳
+   - Documentation interactive auto-générée
+   - Facilite encore plus l'intégration frontend
+
+4. **Simplification des remboursements** ⏳
+   - Algorithme pour minimiser les transactions
+   - Endpoint : GET /trips/:tripId/settlements
+
+5. **WebSockets (collaboration temps réel)** ⏳
+   - Notifications live (nouveau stop, nouvelle dépense)
+   - Package : @adonisjs/transmit
+
+**Le backend est maintenant complet et production-ready pour le MVP !** 🚀
