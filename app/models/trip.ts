@@ -32,6 +32,9 @@ export default class Trip extends BaseModel {
   @column()
   declare status: 'planning' | 'active' | 'completed' | 'cancelled'
 
+  @column()
+  declare coverImage: string | null
+
   // Détails Voiture
   @column()
   declare carConsumption: number

@@ -6,6 +6,8 @@ import { updateTripValidator } from '#validators/trip/update'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { ItineraryOptimizer } from '#services/itinerary_optimizer'
+import { formatFileName } from '#helpers/file_naming'
+import drive from '@adonisjs/drive/services/main'
 
 export default class TripsController {
   /**
@@ -49,6 +51,13 @@ export default class TripsController {
       })
     }
 
+    let coverImage: string | null = null
+    if (payload.cover_image) {
+      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname)
+      await payload.cover_image.moveToDisk(`trips/${fileName}`)
+      coverImage = `trips/${fileName}`
+    }
+
     // Créer le trip
     const trip = await Trip.create({
       title: payload.title,
@@ -58,6 +67,7 @@ export default class TripsController {
       budget: payload.budget || 0,
       status: payload.status || 'planning',
       creatorId: user.id,
+      coverImage: coverImage,
     })
     // Ajouter automatiquement le créateur comme participant
     await TripParticipant.create({
@@ -137,11 +147,25 @@ export default class TripsController {
       return response.forbidden({ message: 'Only creator or organizer can update trip' })
     }
 
-    // Convertir les dates si présentes
-    const updateData = {
+    // Vérifier que le voyage est encore en phase de planification
+    if (trip.status !== 'planning') {
+      return response.badRequest({
+        message: 'Le voyage ne peut être modifié que lorsqu\'il est en statut "En planification"',
+      })
+    }
+
+    // Convertir les données
+    const updateData: any = {
       ...payload,
-      startDate: payload.startDate ? DateTime.fromJSDate(payload.startDate) : undefined,
-      endDate: payload.endDate ? DateTime.fromJSDate(payload.endDate) : undefined,
+    }
+
+    if (payload.cover_image) {
+      if (trip.coverImage) {
+        await drive.use().delete(trip.coverImage)
+      }
+      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname)
+      await payload.cover_image.moveToDisk(`trips/${fileName}`)
+      updateData.coverImage = `trips/${fileName}`
     }
 
     trip.merge(updateData)
@@ -162,6 +186,10 @@ export default class TripsController {
     // Seul le créateur peut supprimer
     if (trip.creatorId !== user.id) {
       return response.forbidden({ message: 'Only creator can delete trip' })
+    }
+
+    if (trip.coverImage) {
+      await drive.use().delete(trip.coverImage)
     }
 
     await trip.delete()
@@ -244,14 +272,17 @@ export default class TripsController {
    * Récupère les trips terminés (date de fin passée)
    * Route publique
    */
-  async finished({ response }: HttpContext) {
+  async finished({ request, response }: HttpContext) {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 6)
+
     const finishedTrips = await Trip.query()
-      .where('endDate', '<', DateTime.now().toSQL())
+      .where('endDate', '<', DateTime.now().toSQLDate()!)
       .orderBy('endDate', 'desc')
-      .limit(6) // On en récupère 6 pour l'affichage
       .preload('stops', (query) => {
         query.where('type', 'city').orderBy('order', 'asc')
       })
+      .paginate(page, limit)
 
     return response.ok(finishedTrips)
   }
