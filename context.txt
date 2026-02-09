@@ -938,3 +938,261 @@ Le backend doit fournir une API REST propre et bien documentée pour être conso
 - Templates Edge pour emails HTML responsives
 - Configuration SMTP (Gmail avec mot de passe d'application)
 - Intégration envoi d'email dans le workflow d'invitation
+
+---
+
+## ✅ Ce qui a été fait (Session 6 - 09/02/2026)
+
+### 1. Intégration Google Places API ✅
+
+**Configuration Google Cloud Platform complète :**
+
+```
+Google Cloud Console (roadtrip-backend-ynov)
+├─ API Places (New) activée ✅
+├─ Clé API générée et sécurisée ✅
+│  └─ Restriction : Places API (New) uniquement
+├─ Budget configuré : 5€/mois ✅
+│  └─ Alertes : 50%, 75%, 90%, 100%
+└─ Quotas par défaut : 175,000 requêtes/jour ✅
+```
+
+**Free Trial Google Cloud :**
+- 275€ de crédit gratuit pendant 90 jours
+- Usage prévu : ~2.38€/mois (très en dessous du budget)
+- Aucune facturation avant fin du free trial (mai 2026)
+
+**Fichiers créés :**
+```
+app/services/
+  google_places_service.ts           ✅ Service d'appel API Google
+    - autocomplete(query)            ✅ Suggestions d'adresses
+    - getPlaceDetails(placeId)       ✅ Coordonnées GPS + adresse
+
+app/controllers/
+  places_controller.ts               ✅ 2 méthodes REST
+    - autocomplete()                 ✅ GET /places/autocomplete
+    - details()                      ✅ GET /places/details/:placeId
+
+app/validators/place/
+  autocomplete.ts                    ✅ Validation query (min 2 chars)
+  details.ts                         ✅ Validation placeId
+
+start/routes/
+  places.ts                          ✅ Routes protégées par JWT
+  routes.ts                          ✅ Import des routes places
+
+.env / start/env.ts
+  GOOGLE_PLACES_API_KEY              ✅ Clé API configurée
+```
+
+**API disponibles (2 nouveaux endpoints) :**
+- ✅ GET `/places/autocomplete?query={text}` 🔒 (Auth JWT)
+  - Suggestions d'adresses en temps réel
+  - Exemple : query=Paris → 5 suggestions avec placeId
+  
+- ✅ GET `/places/details/{placeId}` 🔒 (Auth JWT)
+  - Coordonnées GPS complètes d'un lieu
+  - Retourne : displayName, formattedAddress, location {lat, lng}
+
+**Logique métier implémentée :**
+- ✅ **Timeout 5 secondes** sur les appels API (AbortSignal)
+- ✅ **Field Masking** pour réduire les coûts (displayName, formattedAddress, location)
+- ✅ **Validation inputs** avec VineJS (évite requêtes invalides)
+- ✅ **Transformation données** : Structure Google → Structure simple
+- ✅ **Gestion erreurs complète** : timeout, erreurs HTTP, parsing JSON
+
+**Tests réussis :**
+- ✅ Autocomplete "Paris" → 5 suggestions retournées
+- ✅ Place Details "Tour Eiffel" → Coordonnées GPS correctes
+  - Latitude: 48.858370, Longitude: 2.294481
+
+**Ce que l'étudiant a appris :**
+
+**1. Google Cloud Platform**
+- Configuration de projet et activation d'API
+- Génération et restriction de clés API
+- Système de budgets et alertes (protection financière)
+- Quotas et limites de requêtes
+- Free Trial vs Mode payant
+
+**2. Appels HTTP externes**
+- `fetch()` pour appels API externes
+- Headers personnalisés (X-Goog-Api-Key, X-Goog-FieldMask)
+- Méthodes HTTP (GET vs POST avec body)
+- Timeout avec AbortSignal
+- Parsing de réponses JSON complexes
+
+**3. Architecture en couches**
+- **Service** : Logique pure d'appel API (réutilisable)
+- **Controller** : Orchestration (validation → service → réponse)
+- **Routes** : Exposition REST avec authentification
+- **Validators** : Protection des inputs utilisateur
+
+**4. Optimisation des coûts**
+- Field Masking Google : demander seulement les champs nécessaires
+- Validation côté backend avant appel API = économie
+- Monitoring de consommation en temps réel
+
+**5. TypeScript avancé**
+- Interfaces pour typer les réponses API
+- Optional chaining (`?.`) pour éviter les erreurs
+- Type assertions (`as GooglePlaceDetailsResponse`)
+- Generic types pour les promesses (`Promise<PlaceDetails>`)
+
+**6. Git collaboratif**
+- Résolution de branches divergentes
+- `git pull --no-rebase` (merge)
+- Gestion des conflits (aucun dans notre cas)
+- Synchronisation avec l'équipe
+
+### 2. Concepts appris en profondeur 🎓
+
+**Field Masking (Google API) :**
+```typescript
+headers: {
+  'X-Goog-FieldMask': 'displayName,formattedAddress,location'
+}
+// Coût : Tarif "Basic" ($17/1000 req)
+// Sans field mask : Tarif "Advanced" ($35/1000 req)
+```
+
+**Timeout pour éviter les attentes infinies :**
+```typescript
+signal: AbortSignal.timeout(5000)
+// Si Google met plus de 5s → AbortError
+// Évite que l'utilisateur attende indéfiniment
+```
+
+**Transformation de données (Google → Simple) :**
+```typescript
+// Google retourne :
+{ displayName: { text: "Paris", languageCode: "fr" } }
+
+// On simplifie en :
+{ displayName: "Paris" }
+```
+
+**Gestion des budgets Google Cloud :**
+- Budget ≠ Plafond de dépenses (juste des alertes)
+- Free Trial = crédit gratuit (pas de facturation)
+- Après Free Trial = facturation automatique sur carte
+
+---
+
+## 📊 État actuel du backend (après Session 6)
+
+### ✅ API complètes et testées
+
+**Total : 29 routes API fonctionnelles**
+
+**Authentification (11 routes) :**
+- POST /auth/register
+- POST /auth/login
+- POST /auth/verify-email (nouveau)
+- POST /auth/verify-email-change (nouveau)
+- POST /auth/forgot-password (nouveau)
+- POST /auth/reset-password (nouveau)
+- POST /auth/logout
+- GET /auth/me
+- PUT /auth/me (nouveau)
+- DELETE /auth/me (nouveau)
+- Système OTP avec table `otp_tokens`
+
+**Trips / Voyages (6 routes) :**
+- GET /trips
+- POST /trips
+- GET /trips/:id
+- PATCH /trips/:id
+- DELETE /trips/:id
+- POST /trips/:tripId/optimize (algorithme Haversine)
+
+**Stops / Étapes (5 routes) :**
+- GET /trips/:tripId/stops
+- POST /trips/:tripId/stops
+- GET /stops/:id
+- PATCH /stops/:id
+- DELETE /stops/:id
+
+**Expenses / Dépenses (6 routes) :**
+- GET /trips/:tripId/expenses
+- POST /trips/:tripId/expenses
+- GET /trips/:tripId/balance
+- GET /expenses/:id
+- PATCH /expenses/:id
+- DELETE /expenses/:id
+
+**Participants / Invitations (7 routes) :**
+- POST /trips/:tripId/participants
+- GET /trips/:tripId/participants
+- GET /invitations
+- POST /invitations/:participantId/accept
+- POST /invitations/:participantId/decline
+- PATCH /trips/:tripId/participants/:userId
+- DELETE /trips/:tripId/participants/:userId
+
+**Photos (5 routes) :**
+- POST /stops/:stopId/photos
+- GET /stops/:stopId/photos
+- GET /photos/:id
+- PATCH /photos/:id
+- DELETE /photos/:id
+
+**Google Places API (2 routes - NOUVEAU) :**
+- GET /places/autocomplete?query={text} 🆕
+- GET /places/details/{placeId} 🆕
+
+### Nouveautés ajoutées par l'équipe (merge récent)
+
+**Nouvelles colonnes dans `trips` :**
+- `car_brand`, `car_model`, `fuel_type`, `fuel_consumption` (détails voiture)
+- `toll_rate` (taux de péage)
+- `cover_image` (image de couverture du trip)
+
+**Améliorations :**
+- Système OTP (table `otp_tokens`)
+- Types de stops étendus
+- Catégories de dépenses étendues
+- Helper `file_naming.ts` pour les fichiers
+
+---
+
+## 🎯 CE QUI RESTE À FAIRE (Optionnel)
+
+### Fonctionnalités bonus possibles
+
+1. **Rate Limiting backend** ⏳
+   - Limiter à 20 requêtes/minute par IP
+   - Protection contre abus
+   - Package : @adonisjs/limiter
+   - **Pas urgent** : 3 testeurs seulement, risque faible
+
+2. **Simplification des remboursements** ⏳
+   - Algorithme pour minimiser les transactions
+   - Endpoint : GET /trips/:tripId/settlements
+
+3. **Documentation API Swagger/OpenAPI** ⏳
+   - Documentation interactive auto-générée
+   - Facilite le travail du frontend
+
+4. **WebSockets (collaboration temps réel)** ⏳
+   - Notifications live (nouveau stop, nouvelle dépense)
+   - Package : @adonisjs/transmit
+
+---
+
+## 💡 PROCHAINE ÉTAPE : Intégration Frontend
+
+Le backend Google Places API est **prêt et fonctionnel**. 
+
+**Pour le frontend Vue.js :**
+- Implémenter un composant autocomplete
+- Appeler GET /places/autocomplete pendant la saisie
+- Récupérer le placeId sélectionné
+- Appeler GET /places/details/{placeId}
+- Pré-remplir les champs (adresse, latitude, longitude) lors de la création d'un Stop
+
+**Usage estimé : 2.38€/mois (47% du budget de 5€)**
+- Largement couvert par le Free Trial (275€ pour 90 jours)
+- Aucune facturation avant mai 2026
+
