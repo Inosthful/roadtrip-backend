@@ -18,8 +18,14 @@ export default class TripsController {
     const user = await auth.getUserOrFail()
 
     // Récupère les trips créés + trips où il participe
-    const createdTrips = await user.related('createdTrips').query()
-    const participatingTrips = await user.related('participatingTrips').query()
+    const createdTrips = await user.related('createdTrips').query().orderBy('endDate', 'desc')
+    
+    // Récupère les voyages participés mais pas créés par l'utilisateur
+    const participatingTrips = await user
+      .related('participatingTrips')
+      .query()
+      .where('creatorId', '!=', user.id)
+      .orderBy('endDate', 'desc')
 
     const formattedParticipatingTrips = participatingTrips.map((trip) => {
       const serialized = trip.serialize()
@@ -213,7 +219,7 @@ export default class TripsController {
     const tripId = params.id
 
     // Vérifier que l'user a accès au trip
-    const trip = await Trip.findOrFail(tripId)
+    await Trip.findOrFail(tripId)
 
     const participation = await TripParticipant.query()
       .where('trip_id', tripId)
