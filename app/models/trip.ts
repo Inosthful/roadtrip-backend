@@ -43,6 +43,9 @@ export default class Trip extends BaseModel {
   declare tollRate: number
 
   @column()
+  declare settings: any
+
+  @column()
   declare creatorId: number
 
   @column.dateTime({ autoCreate: true })
