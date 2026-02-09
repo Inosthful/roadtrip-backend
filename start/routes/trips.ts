@@ -23,6 +23,9 @@ router
     // Optimiser l'itinéraire d'un trip
     router.post('/:id/optimize', [TripsController, 'optimize'])
 
+    // Télécharger les photos d'un trip terminé
+    router.get('/:id/photos/download', [TripsController, 'downloadPhotos'])
+
     // Dupliquer un trip
     router.post('/:id/duplicate', [TripsController, 'duplicate'])
 
