@@ -1,7 +1,7 @@
 ### Variables globales
 @baseUrl = http://localhost:3333
 # ⚠️ Remplace cette valeur après le login !
-@token = oat_Mjc.RGc3dW81MFhZZ0c3QV9ROGRLcDAzUmJqeTRlajBTZ3FiNEVmN3p5dzEwNzM1MTkwMjU
+@token = oat_NA.M1JWQkJBYjREaWJKbldUNTI3ZS11Rm04SmdOcjRKdHptUGdnSGgwczE1NjQ0Mjk0MDE
 # oat_MjM.MHBpUjAzMDM3bnRaR0x5cUUzMDFfei1XcjNHTEJEMDZQY0plbHEzeDIyMzcyNzIwNjM
 # 4
 # oat_MjQ.UWV2SHRUY0FidXctenh1UVhKUTVFNzBDM3hTR3YwQlV0Y0tXQzdnNTMwNTcwNzA5NTk
@@ -19,7 +19,7 @@ Content-Type: application/json
 
 {
   "fullName": "Test User",
-  "email": "testtest4@example.com",
+  "email": "testtest5@example.com",
   "password": "password123"
 }
 
@@ -29,7 +29,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "testtest3@example.com",
+  "email": "testtest4@example.com",
   "password": "password123"
 }
 
@@ -306,4 +306,29 @@ Content-Type: application/json
 
 ### 36. [User B] Tenter d'accepter une invitation d'un autre user (403)
 POST {{baseUrl}}/invitations/1/accept
+Authorization: Bearer {{token}}
+
+###############################################
+# 🌍 GOOGLE PLACES API
+###############################################
+
+### 37. Autocomplete - Rechercher "Paris"
+GET {{baseUrl}}/places/autocomplete?query=Paris
+Authorization: Bearer {{token}}
+
+### 38. Autocomplete - Rechercher "Restaurant Lyon"
+GET {{baseUrl}}/places/autocomplete?query=Restaurant Lyon
+Authorization: Bearer {{token}}
+
+### 39. Autocomplete - Query trop courte (400 Bad Request)
+GET {{baseUrl}}/places/autocomplete?query=P
+Authorization: Bearer {{token}}
+
+### 40. Place Details - Détails de la Tour Eiffel
+# Place ID de la Tour Eiffel (exemple)
+GET {{baseUrl}}/places/details/ChIJLU7jZClu5kcR4PcOOO6p3I0
+Authorization: Bearer {{token}}
+
+### 41. Place Details - Place ID invalide (400 Bad Request)
+GET {{baseUrl}}/places/details/invalid-place-id
 Authorization: Bearer {{token}}

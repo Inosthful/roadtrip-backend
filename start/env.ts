@@ -45,5 +45,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring the drive package
   |----------------------------------------------------------
   */
-  DRIVE_DISK: Env.schema.enum(['fs'] as const)
+  DRIVE_DISK: Env.schema.enum(['fs'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring Google Places API
+  |----------------------------------------------------------
+  */
+  GOOGLE_PLACES_API_KEY: Env.schema.string(),
 })
