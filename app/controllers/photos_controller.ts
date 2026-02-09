@@ -2,7 +2,7 @@ import Photo from '#models/photo'
 import Stop from '#models/stop'
 import TripParticipant from '#models/trip_participant'
 import { uploadPhotoValidator } from '#validators/photo/upload'
-import { cuid } from '@adonisjs/core/helpers'
+import { formatFileName } from '#helpers/file_naming'
 import drive from '@adonisjs/drive/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
@@ -53,8 +53,8 @@ export default class PhotosController {
       return response.badRequest({ message: 'Photo file is required' })
     }
 
-    // Générer un nom de fichier unique avec extension
-    const fileName = `${cuid()}.${payload.photo.extname}`
+    // Générer un nom de fichier unique avec extension : 6chars-nom-formate.ext
+    const fileName = formatFileName(payload.photo.clientName, payload.photo.extname)
 
     // Sauvegarder le fichier avec Drive
     await payload.photo.moveToDisk(fileName)

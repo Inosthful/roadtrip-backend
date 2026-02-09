@@ -3,6 +3,9 @@ import { middleware } from '#start/kernel'
 
 const TripsController = () => import('#controllers/trips_controller')
 
+// Route publique pour les trips terminés
+router.get('/trips/finished', [TripsController, 'finished'])
+
 router
   .group(() => {
     // Liste tous les trips de l'utilisateur
@@ -19,6 +22,9 @@ router
 
     // Optimiser l'itinéraire d'un trip
     router.post('/:id/optimize', [TripsController, 'optimize'])
+
+    // Dupliquer un trip
+    router.post('/:id/duplicate', [TripsController, 'duplicate'])
 
     // Supprimer un trip
     router.delete('/:id', [TripsController, 'destroy'])

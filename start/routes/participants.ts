@@ -31,5 +31,8 @@ router
 
     // Refuser une invitation
     router.post('/invitations/:participantId/decline', [ParticipantsController, 'decline'])
+
+    // Vérifier si un utilisateur existe par email
+    router.post('/participants/check', [ParticipantsController, 'checkUser'])
   })
   .use(middleware.auth())

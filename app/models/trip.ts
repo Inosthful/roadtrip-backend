@@ -32,11 +32,22 @@ export default class Trip extends BaseModel {
   @column()
   declare status: 'planning' | 'active' | 'completed' | 'cancelled'
 
-  // Foreign key vers le créateur
+  @column()
+  declare coverImage: string | null
+
+  // Détails Voiture
+  @column()
+  declare carConsumption: number
+
+  @column()
+  declare fuelPrice: number
+
+  @column()
+  declare tollRate: number
+
   @column()
   declare creatorId: number
 
-  // Timestamps
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -65,7 +76,7 @@ export default class Trip extends BaseModel {
     pivotForeignKey: 'trip_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'user_id',
-    pivotColumns: ['role', 'invitation_status', 'invited_at', 'joined_at'],
+    pivotColumns: ['id', 'role', 'invitation_status', 'invited_at', 'joined_at'],
   })
   declare participants: ManyToMany<typeof User>
 

@@ -22,7 +22,7 @@ export default class Stop extends BaseModel {
 
   // Type d'étape
   @column()
-  declare type: 'accommodation' | 'restaurant' | 'activity' | 'poi'
+  declare type: 'accommodation' | 'restaurant' | 'activity' | 'poi' | 'city'
 
   // Géolocalisation
   @column()

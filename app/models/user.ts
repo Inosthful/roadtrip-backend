@@ -30,24 +30,6 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare isVerified: boolean
 
-  @column()
-  declare verificationToken: string | null
-
-  @column()
-  declare pendingEmail: string | null
-
-  @column()
-  declare emailChangeToken: string | null
-
-  @column.dateTime()
-  declare emailChangeExpiresAt: DateTime | null
-
-  @column()
-  declare resetPasswordToken: string | null
-
-  @column.dateTime()
-  declare resetPasswordExpiresAt: DateTime | null
-
   @column({ serializeAs: null })
   declare password: string
 
@@ -73,7 +55,7 @@ export default class User extends compose(BaseModel, AuthFinder) {
     pivotForeignKey: 'user_id',
     relatedKey: 'id',
     pivotRelatedForeignKey: 'trip_id',
-    pivotColumns: ['role', 'invitation_status', 'invited_at', 'joined_at'],
+    pivotColumns: ['id', 'role', 'invitation_status', 'invited_at', 'joined_at'],
   })
   declare participatingTrips: ManyToMany<typeof Trip>
 

@@ -79,15 +79,14 @@ export default class ParticipantsController {
     const acceptUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invitations/${invitation.id}/accept`
 
     await mail.send((message) => {
-      message
-        .to(userToInvite.email)
-        .subject(`Invitation au voyage : ${trip.title}`)
-        .htmlView('emails/invitation', {
-          invitedUser: userToInvite,
-          inviter: user,
-          trip: trip,
-          acceptUrl: acceptUrl,
-        })
+      message.to(userToInvite.email).subject(`Invitation au voyage : ${trip.title}`).html(`
+          <h1>Invitation au voyage</h1>
+          <p>Bonjour ${userToInvite.fullName},</p>
+          <p><strong>${user.fullName}</strong> vous invite à rejoindre le voyage <strong>${trip.title}</strong> sur RoadTrip Collab !</p>
+          <p>Dates : ${trip.startDate.toFormat('dd/MM/yyyy')} - ${trip.endDate.toFormat('dd/MM/yyyy')}</p>
+          <p>Pour accepter l'invitation, cliquez sur le lien ci-dessous :</p>
+          <a href="${acceptUrl}" style="padding: 10px 20px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px;">Accepter l'invitation</a>
+        `)
     })
 
     return response.created({
@@ -299,6 +298,33 @@ export default class ParticipantsController {
 
     return response.ok({
       message: isSelfRemoval ? 'You have left the trip' : 'Participant removed successfully',
+    })
+  }
+
+  /**
+   * POST /participants/check
+   * Vérifie si un utilisateur existe par email
+   */
+  async checkUser({ request, response }: HttpContext) {
+    const email = request.input('email')
+    
+    if (!email) {
+      return response.badRequest({ message: 'Email is required' })
+    }
+
+    const user = await User.findBy('email', email)
+
+    if (!user) {
+      return response.notFound({ message: 'Aucun utilisateur trouvé avec cet email' })
+    }
+
+    return response.ok({ 
+      exists: true,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email
+      }
     })
   }
 }
