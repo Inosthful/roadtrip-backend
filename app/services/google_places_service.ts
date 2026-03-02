@@ -132,6 +132,99 @@ export class GooglePlacesService {
       throw new Error('Erreur inconnue lors de la récupération des détails')
     }
   }
+
+  /**
+   * Nearby Search - Recherche de lieux à proximité d'une position
+   *
+   * Utilisé pour : Trouver des restaurants, activités, etc. autour d'une ville
+   *
+   * @param latitude - Latitude du centre de recherche
+   * @param longitude - Longitude du centre de recherche
+   * @param radius - Rayon de recherche en mètres (ex: 5000 = 5km)
+   * @param types - Types de lieux à rechercher (ex: ['restaurant', 'tourist_attraction'])
+   * @param maxResultCount - Nombre maximum de résultats (max 20)
+   * @returns Liste de lieux avec coordonnées et détails
+   */
+  async nearbySearch(
+    latitude: number,
+    longitude: number,
+    radius: number = 5000,
+    types: string[] = ['tourist_attraction'],
+    maxResultCount: number = 10
+  ): Promise<NearbySearchResult> {
+    // Validation des paramètres
+    if (!latitude || !longitude) {
+      throw new Error('Latitude et longitude sont requis')
+    }
+    if (radius <= 0 || radius > 50000) {
+      throw new Error('Le rayon doit être entre 1 et 50000 mètres')
+    }
+    if (maxResultCount <= 0 || maxResultCount > 20) {
+      throw new Error('Le nombre de résultats doit être entre 1 et 20')
+    }
+
+    try {
+      // Appel à l'API Google Places - Nearby Search (New)
+      const response = await fetch(`${this.baseUrl}/places:searchNearby`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': this.apiKey,
+          // Champs à retourner pour optimiser les coûts
+          'X-Goog-FieldMask':
+            'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating',
+        },
+        body: JSON.stringify({
+          includedTypes: types,
+          maxResultCount: maxResultCount,
+          locationRestriction: {
+            circle: {
+              center: {
+                latitude: latitude,
+                longitude: longitude,
+              },
+              radius: radius,
+            },
+          },
+          languageCode: 'fr',
+        }),
+        signal: AbortSignal.timeout(10000), // 10 secondes pour nearby search
+      })
+
+      // Gestion des erreurs HTTP
+      if (!response.ok) {
+        const errorBody = await response.text()
+        throw new Error(`Erreur API Google Places (${response.status}): ${errorBody}`)
+      }
+
+      // Parse de la réponse JSON
+      const data = (await response.json()) as GoogleNearbySearchResponse
+
+      // Transformation des résultats pour notre API
+      return {
+        places: (data.places || []).map((place) => ({
+          placeId: place.id || '',
+          displayName: place.displayName?.text || '',
+          formattedAddress: place.formattedAddress || '',
+          location: {
+            latitude: place.location?.latitude || 0,
+            longitude: place.location?.longitude || 0,
+          },
+          types: place.types || [],
+          rating: place.rating || null,
+        })),
+      }
+    } catch (error) {
+      // Gestion des erreurs (timeout, réseau, etc.)
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error("Timeout: L'API Google Places met trop de temps à répondre")
+        }
+        throw new Error(`Erreur lors de la recherche nearby: ${error.message}`)
+      }
+      throw new Error('Erreur inconnue lors de la recherche nearby')
+    }
+  }
 }
 /**
  * Types TypeScript pour les réponses
@@ -169,4 +262,40 @@ export interface PlaceDetails {
     latitude: number
     longitude: number
   }
+}
+
+// Réponse de l'API Google Places pour nearby search
+interface GoogleNearbySearchResponse {
+  places?: GoogleNearbyPlace[]
+}
+
+interface GoogleNearbyPlace {
+  id?: string
+  displayName?: {
+    text: string
+    languageCode?: string
+  }
+  formattedAddress?: string
+  location?: {
+    latitude: number
+    longitude: number
+  }
+  types?: string[]
+  rating?: number
+}
+
+export interface NearbySearchResult {
+  places: NearbyPlace[]
+}
+
+export interface NearbyPlace {
+  placeId: string
+  displayName: string
+  formattedAddress: string
+  location: {
+    latitude: number
+    longitude: number
+  }
+  types: string[]
+  rating: number | null
 }

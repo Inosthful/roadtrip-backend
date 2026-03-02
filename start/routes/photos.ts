@@ -33,9 +33,6 @@ router
     // GET /photos/:id - Affiche les détails d'une photo
     router.get('/photos/:id', [PhotosController, 'show'])
 
-    // PATCH /photos/:id - Modifie les métadonnées d'une photo
-    router.patch('/photos/:id', [PhotosController, 'update'])
-
     // DELETE /photos/:id - Supprime une photo
     router.delete('/photos/:id', [PhotosController, 'destroy'])
   })

@@ -16,6 +16,9 @@ router
 
     // GET /places/details/:placeId
     router.get('/details/:placeId', [PlacesController, 'details'])
+
+    // GET /places/nearby?latitude=48.8566&longitude=2.3522&radius=5000&types=restaurant&limit=10
+    router.get('/nearby', [PlacesController, 'nearby'])
   })
   .prefix('/places')
   .use(middleware.auth()) // 🔒 Routes protégées par authentification

@@ -8,6 +8,7 @@ import { DateTime } from 'luxon'
 import { ItineraryOptimizer } from '#services/itinerary_optimizer'
 import { formatFileName } from '#helpers/file_naming'
 import drive from '@adonisjs/drive/services/main'
+import AdmZip from 'adm-zip'
 
 export default class TripsController {
   /**
@@ -18,8 +19,14 @@ export default class TripsController {
     const user = await auth.getUserOrFail()
 
     // Récupère les trips créés + trips où il participe
-    const createdTrips = await user.related('createdTrips').query()
-    const participatingTrips = await user.related('participatingTrips').query()
+    const createdTrips = await user.related('createdTrips').query().orderBy('endDate', 'desc')
+    
+    // Récupère les voyages participés mais pas créés par l'utilisateur
+    const participatingTrips = await user
+      .related('participatingTrips')
+      .query()
+      .where('creatorId', '!=', user.id)
+      .orderBy('endDate', 'desc')
 
     const formattedParticipatingTrips = participatingTrips.map((trip) => {
       const serialized = trip.serialize()
@@ -213,7 +220,7 @@ export default class TripsController {
     const tripId = params.id
 
     // Vérifier que l'user a accès au trip
-    const trip = await Trip.findOrFail(tripId)
+    await Trip.findOrFail(tripId)
 
     const participation = await TripParticipant.query()
       .where('trip_id', tripId)
@@ -346,5 +353,114 @@ export default class TripsController {
     }
 
     return response.created(newTrip)
+  }
+
+  /**
+   * GET /trips/:id/photos/download
+   * Télécharge toutes les photos d'un trip terminé dans un ZIP organisé
+   */
+  async downloadPhotos({ auth, params, response }: HttpContext) {
+    const user = await auth.getUserOrFail()
+    const tripId = params.id
+
+    // 1. Récupérer le trip avec les stops et les photos
+    const trip = await Trip.query()
+      .where('id', tripId)
+      .preload('stops', (query) => {
+        query.preload('photos').orderBy('arrivalDate', 'asc').orderBy('order', 'asc')
+      })
+      .firstOrFail()
+
+    // 2. Vérifier l'accès
+    const participation = await TripParticipant.query()
+      .where('trip_id', tripId)
+      .where('user_id', user.id)
+      .where('invitation_status', 'accepted')
+      .first()
+
+    if (!participation) {
+      return response.forbidden({ message: 'Access denied' })
+    }
+
+    // 3. Vérifier le statut (optionnel, mais demandé "pour les trips terminés")
+    // On peut être souple et autoriser le téléchargement même si pas "completed" tant qu'il y a des photos,
+    // mais la demande spécifie "pour les trips qui ont le status terminé".
+    if (trip.status !== 'completed') {
+       return response.badRequest({ message: 'Les photos ne peuvent être téléchargées que pour les voyages terminés.' })
+    }
+
+    const zip = new AdmZip()
+    const tripStartDate = trip.startDate
+
+    // Group stops by day
+    // Key: Day Number (1-based)
+    // Value: Array of Stops
+    const stopsByDay: Map<number, Stop[]> = new Map()
+
+    for (const stop of trip.stops) {
+      let dayNum = 1
+      if (stop.arrivalDate) {
+        // Calculer la différence en jours
+        const diff = stop.arrivalDate.diff(tripStartDate, 'days').toObject()
+        // Math.floor pour gérer les heures, +1 car jour 1 = start date
+        dayNum = Math.floor(diff.days || 0) + 1
+      }
+      
+      // Si la date est antérieure au début (cas limite), on met jour 1
+      if (dayNum < 1) dayNum = 1
+
+      if (!stopsByDay.has(dayNum)) {
+        stopsByDay.set(dayNum, [])
+      }
+      stopsByDay.get(dayNum)!.push(stop)
+    }
+
+    // Parcourir les jours triés
+    const sortedDays = Array.from(stopsByDay.keys()).sort((a, b) => a - b)
+
+    for (const dayNum of sortedDays) {
+      const dayStops = stopsByDay.get(dayNum)!
+      if (dayStops.length === 0) continue
+
+      // Déterminer le nom du lieu du jour (basé sur le premier stop)
+      // "jour-lenumerodujour-lelieudutripsdujour"
+      const firstStop = dayStops[0]
+      // Nettoyer le nom pour éviter les caractères invalides dans les chemins
+      const cleanLocation = (firstStop.title || 'Inconnu').replace(/[^a-z0-9]/gi, '_').substring(0, 30)
+      const dayFolderName = `jour-${dayNum}-${cleanLocation}`
+
+      for (const stop of dayStops) {
+        if (!stop.photos || stop.photos.length === 0) continue
+
+        // "ensuite on aura un dossier pour chaque trips (stops) ... nom du lieu du trips"
+        const cleanStopName = stop.title.replace(/[^a-z0-9]/gi, '_').substring(0, 30)
+        const stopFolderName = `${dayFolderName}/${cleanStopName}`
+
+        for (const photo of stop.photos) {
+          try {
+            // Récupérer le contenu du fichier depuis le Drive (local ou S3)
+            // Note: getBytes retourne un Buffer
+            const content = await drive.use().getBytes(photo.filePath)
+            
+            // Nom du fichier original ou généré
+            const fileName = photo.filePath.split('/').pop() || `photo-${photo.id}.jpg`
+            
+            // Ajouter au zip
+            zip.addFile(`${stopFolderName}/${fileName}`, content)
+          } catch (error) {
+            console.error(`Erreur lors de l'ajout de la photo ${photo.id} au zip:`, error)
+            // On continue même si une photo échoue
+          }
+        }
+      }
+    }
+
+    const zipBuffer = zip.toBuffer()
+    const zipName = `Trip-${trip.title.replace(/[^a-z0-9]/gi, '_')}-Photos.zip`
+
+    response.header('Content-Type', 'application/zip')
+    response.header('Content-Disposition', `attachment; filename="${zipName}"`)
+    
+    return response.send(zipBuffer)
   }
 }
