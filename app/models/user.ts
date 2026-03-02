@@ -30,8 +30,14 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare isVerified: boolean
 
+  @column()
+  declare isAdmin: boolean
+
   @column({ serializeAs: null })
   declare password: string
+
+  // Propriété temporaire non persistée (utilisée pour les emails de changement d'adresse)
+  declare pendingEmail?: string
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

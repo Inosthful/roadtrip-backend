@@ -57,7 +57,7 @@ export class ItineraryOptimizer {
    * - Les segments sont ensuite concaténés
    */
   private optimizeWithConstraints(
-    allStops: Stop[],
+    _allStops: Stop[],
     lockedStops: Stop[],
     unlockedStops: Stop[]
   ): Stop[] {

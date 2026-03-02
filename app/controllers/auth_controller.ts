@@ -9,7 +9,6 @@ import ResetPasswordNotification from '#mails/reset_password_notification'
 import ChangeEmailNotification from '#mails/change_email_notification'
 import mail from '@adonisjs/mail/services/main'
 import crypto from 'node:crypto'
-import env from '#start/env'
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 
@@ -173,6 +172,8 @@ export default class AuthController {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
+          isVerified: user.isVerified,
+          isAdmin: user.isAdmin,
         },
       },
     })

@@ -60,7 +60,7 @@ export default class TripsController {
 
     let coverImage: string | null = null
     if (payload.cover_image) {
-      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname)
+      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname ?? '')
       await payload.cover_image.moveToDisk(`trips/${fileName}`)
       coverImage = `trips/${fileName}`
     }
@@ -170,7 +170,7 @@ export default class TripsController {
       if (trip.coverImage) {
         await drive.use().delete(trip.coverImage)
       }
-      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname)
+      const fileName = formatFileName(payload.cover_image.clientName, payload.cover_image.extname ?? '')
       await payload.cover_image.moveToDisk(`trips/${fileName}`)
       updateData.coverImage = `trips/${fileName}`
     }
@@ -446,7 +446,7 @@ export default class TripsController {
             const fileName = photo.filePath.split('/').pop() || `photo-${photo.id}.jpg`
             
             // Ajouter au zip
-            zip.addFile(`${stopFolderName}/${fileName}`, content)
+            zip.addFile(`${stopFolderName}/${fileName}`, Buffer.from(content))
           } catch (error) {
             console.error(`Erreur lors de l'ajout de la photo ${photo.id} au zip:`, error)
             // On continue même si une photo échoue
