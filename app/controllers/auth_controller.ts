@@ -11,6 +11,7 @@ import mail from '@adonisjs/mail/services/main'
 import crypto from 'node:crypto'
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
+import env from '#start/env'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
@@ -30,7 +31,7 @@ export default class AuthController {
       expiresAt: DateTime.now().plus({ hours: 24 }), // Token valide 24h
     })
 
-    const frontendUrl = 'http://localhost:5173'
+    const frontendUrl = env.get('FRONTEND_URL')
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`
 
     await mail.send(new VerifyEmailNotification(user, verifyUrl))
@@ -93,7 +94,7 @@ export default class AuthController {
       expiresAt: DateTime.now().plus({ hours: 1 }),
     })
 
-    const frontendUrl = 'http://localhost:5173'
+    const frontendUrl = env.get('FRONTEND_URL')
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`
 
     await mail.send(new ResetPasswordNotification(user, resetUrl))
@@ -235,7 +236,7 @@ export default class AuthController {
       // même si ce n'est plus dans la DB user
       user.pendingEmail = payload.email 
       
-      const frontendUrl = 'http://localhost:5173'
+      const frontendUrl = env.get('FRONTEND_URL')
       const verifyUrl = `${frontendUrl}/verify-change-email?token=${token}`
 
       await mail.send(new ChangeEmailNotification(user, verifyUrl))

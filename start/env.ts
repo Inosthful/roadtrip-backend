@@ -53,4 +53,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   GOOGLE_PLACES_API_KEY: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | URL du frontend (utilisée dans les emails)
+  |----------------------------------------------------------
+  */
+  FRONTEND_URL: Env.schema.string(),
 })
