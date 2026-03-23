@@ -9,6 +9,7 @@ import { ItineraryOptimizer } from '#services/itinerary_optimizer'
 import { formatFileName } from '#helpers/file_naming'
 import drive from '@adonisjs/drive/services/main'
 import AdmZip from 'adm-zip'
+import TripStatusService from '#services/trip_status_service'
 
 export default class TripsController {
   /**
@@ -18,13 +19,17 @@ export default class TripsController {
   async index({ auth, response }: HttpContext) {
     const user = await auth.getUserOrFail()
 
+    // Mise à jour automatique des statuts avant de lister
+    const statusService = new TripStatusService()
+    await statusService.handleStatusUpdates()
+
     // Récupère les trips créés + trips où il participe
     const createdTrips = await user.related('createdTrips').query()
       .preload('participants')
       .preload('expenses')
       .preload('creator')
       .orderBy('endDate', 'desc')
-    
+
     // Récupère les voyages participés mais pas créés par l'utilisateur
     const participatingTrips = await user
       .related('participatingTrips')
@@ -415,7 +420,7 @@ export default class TripsController {
         // Math.floor pour gérer les heures, +1 car jour 1 = start date
         dayNum = Math.floor(diff.days || 0) + 1
       }
-      
+
       // Si la date est antérieure au début (cas limite), on met jour 1
       if (dayNum < 1) dayNum = 1
 
@@ -451,10 +456,10 @@ export default class TripsController {
             // Récupérer le contenu du fichier depuis le Drive (local ou S3)
             // Note: getBytes retourne un Buffer
             const content = await drive.use().getBytes(photo.filePath)
-            
+
             // Nom du fichier original ou généré
             const fileName = photo.filePath.split('/').pop() || `photo-${photo.id}.jpg`
-            
+
             // Ajouter au zip
             zip.addFile(`${stopFolderName}/${fileName}`, Buffer.from(content))
           } catch (error) {
@@ -470,7 +475,7 @@ export default class TripsController {
 
     response.header('Content-Type', 'application/zip')
     response.header('Content-Disposition', `attachment; filename="${zipName}"`)
-    
+
     return response.send(zipBuffer)
   }
 }
