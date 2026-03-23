@@ -35,3 +35,6 @@ import './routes/photos.js'
 
 // Routes Google Places API (autocomplete, détails de lieux)
 import './routes/places.js'
+
+// Routes d'administration (backoffice)
+import './routes/admin.js'
