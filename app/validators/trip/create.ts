@@ -22,7 +22,7 @@ export const createTripValidator = vine.compile(
     cover_image: vine.file({
       size: '5mb',
       extnames: ['jpg', 'png', 'jpeg', 'webp']
-    }),
+    }).optional(),
     status: vine.enum(['planning', 'active', 'completed', 'cancelled']).optional(),
     carConsumption: vine.number().min(0).optional(),
     fuelPrice: vine.number().min(0).optional(),

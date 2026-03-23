@@ -19,13 +19,20 @@ export default class TripsController {
     const user = await auth.getUserOrFail()
 
     // Récupère les trips créés + trips où il participe
-    const createdTrips = await user.related('createdTrips').query().orderBy('endDate', 'desc')
+    const createdTrips = await user.related('createdTrips').query()
+      .preload('participants')
+      .preload('expenses')
+      .preload('creator')
+      .orderBy('endDate', 'desc')
     
     // Récupère les voyages participés mais pas créés par l'utilisateur
     const participatingTrips = await user
       .related('participatingTrips')
       .query()
-      .where('creatorId', '!=', user.id)
+      .where('creator_id', '!=', user.id)
+      .preload('participants')
+      .preload('expenses')
+      .preload('creator')
       .orderBy('endDate', 'desc')
 
     const formattedParticipatingTrips = participatingTrips.map((trip) => {
