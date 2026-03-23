@@ -80,6 +80,9 @@ export default class TripsController {
       endDate: DateTime.fromJSDate(payload.endDate),
       budget: payload.budget || 0,
       status: payload.status || 'planning',
+      carConsumption: payload.carConsumption || 7.0,
+      fuelPrice: payload.fuelPrice || 1.8,
+      settings: payload.settings,
       creatorId: user.id,
       coverImage: coverImage,
     })
