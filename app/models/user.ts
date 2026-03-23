@@ -28,6 +28,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare email: string
 
   @column()
+  declare avatar: string | null
+
+  @column()
   declare isVerified: boolean
 
   @column()

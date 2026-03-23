@@ -8,10 +8,12 @@ import VerifyEmailNotification from '#mails/verify_email_notification'
 import ResetPasswordNotification from '#mails/reset_password_notification'
 import ChangeEmailNotification from '#mails/change_email_notification'
 import mail from '@adonisjs/mail/services/main'
+import drive from '@adonisjs/drive/services/main'
 import crypto from 'node:crypto'
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import env from '#start/env'
+import app from '@adonisjs/core/services/app'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
@@ -150,6 +152,7 @@ export default class AuthController {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
+          avatar: user.avatar,
         },
         token: token.value!.release(),
       },
@@ -173,6 +176,7 @@ export default class AuthController {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
+          avatar: user.avatar,
           isVerified: user.isVerified,
           isAdmin: user.isAdmin,
         },
@@ -195,7 +199,7 @@ export default class AuthController {
       )
     )
 
-    let emailChangeMessage = null;
+    let emailChangeMessage = null
 
     if (payload.password) {
       if (!payload.currentPassword) {
@@ -212,6 +216,38 @@ export default class AuthController {
 
     if (payload.fullName) {
       user.fullName = payload.fullName
+    }
+
+    // Gestion de l'avatar (Vrai fichier via Multipart)
+    const avatarFile = request.file('avatar', {
+      size: '5mb',
+      extnames: ['jpg', 'png', 'jpeg', 'webp'],
+    })
+
+    if (avatarFile) {
+      // Supprimer l'ancienne photo si elle existe
+      if (user.avatar) {
+        const oldPath = user.avatar.replace('/uploads/', '')
+        if (await drive.exists(oldPath)) {
+          await drive.delete(oldPath)
+        }
+      }
+
+      const fileName = `${crypto.randomBytes(10).toString('hex')}.${avatarFile.extname}`
+      await avatarFile.move(app.makePath('uploads/avatars'), {
+        name: fileName,
+      })
+
+      user.avatar = `/uploads/avatars/${fileName}`
+    } else if (request.input('removeAvatar') === 'true') {
+      // Suppression explicite de l'avatar
+      if (user.avatar) {
+        const oldPath = user.avatar.replace('/uploads/', '')
+        if (await drive.exists(oldPath)) {
+          await drive.delete(oldPath)
+        }
+        user.avatar = null
+      }
     }
 
     // Gestion du changement d'email via OtpToken
@@ -231,16 +267,16 @@ export default class AuthController {
         data: { newEmail: payload.email },
         expiresAt: DateTime.now().plus({ hours: 1 }),
       })
-      
-      // On attache temporairement pendingEmail à l'objet user pour l'envoi du mail, 
+
+      // On attache temporairement pendingEmail à l'objet user pour l'envoi du mail,
       // même si ce n'est plus dans la DB user
-      user.pendingEmail = payload.email 
-      
+      user.pendingEmail = payload.email
+
       const frontendUrl = env.get('FRONTEND_URL')
       const verifyUrl = `${frontendUrl}/verify-change-email?token=${token}`
 
       await mail.send(new ChangeEmailNotification(user, verifyUrl))
-      
+
       emailChangeMessage = `Un email de vérification a été envoyé à ${payload.email}.`
     }
 
@@ -248,12 +284,12 @@ export default class AuthController {
 
     // Pour la réponse, on peut vérifier s'il y a un token actif 'change_email' pour ce user
     const activeChangeEmailToken = await OtpToken.query()
-       .where('user_id', user.id)
-       .where('purpose', 'change_email')
-       .whereNull('used_at')
-       .where('expires_at', '>', DateTime.now().toSQL())
-       .orderBy('created_at', 'desc')
-       .first()
+      .where('user_id', user.id)
+      .where('purpose', 'change_email')
+      .whereNull('used_at')
+      .where('expires_at', '>', DateTime.now().toSQL())
+      .orderBy('created_at', 'desc')
+      .first()
 
     return response.ok({
       message: emailChangeMessage || 'Profil mis à jour avec succès.',
@@ -262,7 +298,8 @@ export default class AuthController {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
-          pendingEmail: activeChangeEmailToken ? activeChangeEmailToken.data?.newEmail : null
+          avatar: user.avatar,
+          pendingEmail: activeChangeEmailToken ? activeChangeEmailToken.data?.newEmail : null,
         },
       },
     })
