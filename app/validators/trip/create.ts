@@ -24,6 +24,7 @@ export const createTripValidator = vine.compile(
       extnames: ['jpg', 'png', 'jpeg', 'webp']
     }).optional(),
     status: vine.enum(['planning', 'active', 'completed', 'cancelled']).optional(),
+    category: vine.string().optional(),
     carConsumption: vine.number().min(0).optional(),
     fuelPrice: vine.number().min(0).optional(),
     settings: vine.object({}).allowUnknownProperties().optional(),

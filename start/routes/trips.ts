@@ -29,6 +29,9 @@ router
     // Dupliquer un trip
     router.post('/:id/duplicate', [TripsController, 'duplicate'])
 
+    // Rendre un trip public
+    router.post('/:id/public', [TripsController, 'makePublic'])
+
     // Supprimer un trip
     router.delete('/:id', [TripsController, 'destroy'])
   })

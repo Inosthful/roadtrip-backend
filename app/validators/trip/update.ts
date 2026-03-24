@@ -8,6 +8,7 @@ export const updateTripValidator = vine.compile(
     endDate: vine.date().afterField('startDate').optional(),
     budget: vine.number().min(0).optional(),
     status: vine.enum(['planning', 'active', 'completed', 'cancelled']).optional(),
+    category: vine.string().optional().nullable(),
     cover_image: vine.file({
       size: '5mb',
       extnames: ['jpg', 'png', 'jpeg', 'webp']
