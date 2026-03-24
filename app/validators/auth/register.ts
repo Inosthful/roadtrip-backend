@@ -7,7 +7,6 @@ export const registerValidator = vine.compile(
     email: vine
       .string()
       .email()
-      .normalizeEmail()
       .unique(async (_db, value) => {
         const user = await User.findBy('email', value)
         return !user

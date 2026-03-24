@@ -192,7 +192,7 @@ export default class AuthController {
       vine.compile(
         vine.object({
           fullName: vine.string().optional(),
-          email: vine.string().email().normalizeEmail().optional(),
+          email: vine.string().email().optional(),
           password: vine.string().minLength(8).maxLength(255).optional(),
           currentPassword: vine.string().optional(),
         })

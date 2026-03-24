@@ -307,7 +307,7 @@ export default class ParticipantsController {
    */
   async checkUser({ request, response }: HttpContext) {
     const email = request.input('email')
-    
+
     if (!email) {
       return response.badRequest({ message: 'Email is required' })
     }
@@ -318,7 +318,7 @@ export default class ParticipantsController {
       return response.notFound({ message: 'Aucun utilisateur trouvé avec cet email' })
     }
 
-    return response.ok({ 
+    return response.ok({
       exists: true,
       user: {
         id: user.id,

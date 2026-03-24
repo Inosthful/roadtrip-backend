@@ -16,6 +16,15 @@ export const updateTripValidator = vine.compile(
     carConsumption: vine.number().min(0).optional(),
     fuelPrice: vine.number().min(0).optional(),
     tollRate: vine.number().min(0).optional(),
-    settings: vine.object({}).allowUnknownProperties().optional(),
+    settings: vine.any().transform((value) => {
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value)
+        } catch {
+          return value
+        }
+      }
+      return value
+    }).optional(),
   })
 )
