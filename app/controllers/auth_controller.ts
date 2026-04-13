@@ -153,6 +153,7 @@ export default class AuthController {
           fullName: user.fullName,
           email: user.email,
           avatar: user.avatar,
+          isAdmin: user.isAdmin,
         },
         token: token.value!.release(),
       },
