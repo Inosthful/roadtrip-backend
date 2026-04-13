@@ -12,7 +12,5 @@ export const createStopValidator = vine.compile(
     departureDate: vine.date().optional(),
     order: vine.number().positive().optional(),
     isLocked: vine.boolean().optional(),
-    price: vine.number().min(0).optional(),
-    paidBy: vine.number().positive().optional(),
   })
 )
