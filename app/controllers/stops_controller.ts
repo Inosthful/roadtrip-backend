@@ -114,33 +114,6 @@ export default class StopsController {
 
     await stop.load('creator')
 
-    if (payload.price && payload.price > 0) {
-      let category: 'activity' | 'accommodation' | 'food' | 'other' = 'other'
-      switch (payload.type) {
-        case 'accommodation':
-          category = 'accommodation'
-          break
-        case 'restaurant':
-          category = 'food'
-          break
-        case 'activity':
-          category = 'activity'
-          break
-        default:
-          category = 'other'
-      }
-
-      await Expense.create({
-        tripId: trip.id,
-        stopId: stop.id,
-        title: `Activité : ${stop.title}`,
-        amount: payload.price,
-        category: category,
-        paidBy: payload.paidBy || user.id,
-        expenseDate: stop.arrivalDate || DateTime.now(),
-      })
-    }
-
     return response.created(stop)
   }
 
