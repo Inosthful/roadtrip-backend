@@ -1,6 +1,8 @@
 # RoadTrip Collab — Backend
 
 API REST construite avec **AdonisJS 6**, **PostgreSQL** et **TypeScript**.
+backend : https://github.com/Inosthful/roadtrip-backend
+frontend : https://github.com/th0mate/roadTripCollab_front
 
 ## Prérequis
 
